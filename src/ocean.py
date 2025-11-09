@@ -27,16 +27,16 @@ class Ocean:
         step: optional time step for time_series currents
         """
         if self.current_type == "normal":
-            mean = np.array(self.current_params["normal"]["speed"])
-            std = np.array(self.current_params["normal"]["std"])
+            mean = np.array(self.current_params["speed"])
+            std = np.array(self.current_params["std"])
             linear = np.random.normal(mean, std)
             return np.concatenate((linear, np.zeros(3)))
 
         elif self.current_type == "jet":
-            return np.array(self.current_params["jet"]["vector"])
+            return np.array(self.current_params["vector"])
 
         elif self.current_type == "constant":
-            linear = np.array(self.current_params["constant"]["vector"])
+            linear = np.array(self.current_params["vector"])
             return np.concatenate((linear, np.zeros(3)))
 
         elif self.current_type == "time_series":
@@ -53,10 +53,10 @@ class Ocean:
                     v0 = np.array(self.depth_profile[i]["vector"])
                     v1 = np.array(self.depth_profile[i + 1]["vector"])
                     ratio = (z - d0) / (d1 - d0)
-                    return v0 + ratio * (v1 - v0)
+                    return np.concatenate((v0 + ratio * (v1 - v0), np.zeros(3)))
             if z <= self.depth_profile[0]["depth"]:
-                return np.array(self.depth_profile[0]["vector"])
-            return np.array(self.depth_profile[-1]["vector"])
+                return np.concatenate((np.array(self.depth_profile[0]["vector"]), np.zeros(3)))
+            return np.concatenate((np.array(self.depth_profile[-1]["vector"]), np.zeros(3)))
 
         else:
             raise ValueError(f"Unsupported current type: {self.current_type}")

@@ -131,9 +131,9 @@ class Viewer:
 				glPushMatrix()
 				tf = self.etas[self.frame_index % len(self.etas)]
 				glTranslatef(*tf[:3])
-				glRotatef(tf[3], 1, 0, 0)
-				glRotatef(tf[4], 0, 1, 0)
-				glRotatef(tf[5], 0, 0, 1)
+				glRotatef(tf[3] * 180 / 3.1415926535, 1.0, 0.0, 0.0)
+				glRotatef(tf[4] * 180 / 3.1415926535, 0.0, 1.0, 0.0)
+				glRotatef(tf[5] * 180 / 3.1415926535, 0.0, 0.0, 1.0)
 				draw_vbo_textured(self.robot_vbo, self.robot_vertex_count, self.robot_texture_id)
 				if self.gui.draw_reference_button.active:
 					self.draw_axes()
@@ -353,7 +353,7 @@ class Viewer:
 		self.load_sequences()
 
 		# Load models
-		robot_mesh = load_obj_with_tex("config\data\BlueROV2H.obj", "config\data\BlueROVTexture.png")
+		robot_mesh = load_obj_with_tex("config/data/BlueROV2H.obj", "config/data/BlueROVTexture.png")
 		vertex_data = create_vertex_data(*robot_mesh[:4])
 		self.robot_vbo = create_vbo(vertex_data)
 		self.robot_texture_id = robot_mesh[4]

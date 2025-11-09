@@ -14,7 +14,10 @@ def load_config(filename):
 		'timestep': simulation_cfg.get('timestep', 0.01),
 		'end_time': simulation_cfg.get('end_time', 10.0),
 		'graphical': simulation_cfg.get('graphical', True),
-		'train': simulation_cfg.get('train', False),
+		'save_csv': simulation_cfg.get('save_csv', True),
+		'save_output': simulation_cfg.get('save_output', ""),
+		'show_graphs': simulation_cfg.get('show_graphs', False),
+		'save_graphs': simulation_cfg.get('save_graphs', False),
 	}
 
 	# Robot parameters
@@ -45,14 +48,14 @@ def load_config(filename):
 			'lambda_smc': np.array(smc_params.get('lambda_smc')),
 			'phi': np.array(smc_params.get('phi')),
 		})
-	elif ctrl_type == 'PID':
+	if ctrl_type == 'PID':
 		pid_params = controller_cfg.get('pid_params', {})
 		controller_params.update({
 			'kp': pid_params.get('kp'),
 			'ki': pid_params.get('ki'),
 			'kd': pid_params.get('kd'),
 		})
-	else:
+	if ctrl_type != 'PID' and ctrl_type != 'SMC':
 		raise ValueError(f"Unsupported controller type: {ctrl_type}")
 	
 	robot_params = {

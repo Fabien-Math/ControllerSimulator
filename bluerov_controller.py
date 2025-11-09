@@ -338,6 +338,8 @@ def train():
 
 if __name__ == '__main__':
 	most_probable_k_values, most_probable_l_values = None, None
+	most_probable_k_values = np.array([15.467418184576106, 16.914037455647865, 12.894820929807382, 5.1054479995697465, 5.719519180074537, 9.936626577721984])
+	most_probable_l_values = np.array([0.8572380182629944, 0.704922768864575, 2.5543558503257913, 1.8157235640885756, 1.5516382871745191, 2.0466708522707298])
 	# most_probable_k_values, most_probable_l_values = train()
 	main(most_probable_k_values, most_probable_l_values)
 

@@ -24,4 +24,6 @@ class GraphicalSimulationManager:
 				break
 
 		self.robot.logger.np_format()
+
+	def run_viewer(self):
 		self.viewer.run()

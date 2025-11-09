@@ -1,6 +1,7 @@
 import numpy as np
 
 from sliding_mode_controller import SlidingModeController
+from pid_controller import PIDController
 from thruster_system import ThrusterSystem
 
 class ControllerManager:
@@ -23,8 +24,8 @@ class ControllerManager:
 		if controller_params['type'] == 'SMC':
 			self.controller = SlidingModeController(controller_params)
 		elif controller_params['type'] == 'PID':
-			# TO DO
-			...
+			self.controller = PIDController(controller_params)
+
 
 	def add_waypoint(self, wps, overwrite = False):
 		if overwrite:
@@ -78,6 +79,6 @@ class ControllerManager:
 
 		self.compute_error(eta, nu)
 
-		self.controller.update(self.etas_err, self.nus_err)
+		self.controller.update(dt, self.etas_err, self.nus_err)
 		self.thrusters.update(dt, self.controller.cmd)  # Apply thruster dynamics
 		
