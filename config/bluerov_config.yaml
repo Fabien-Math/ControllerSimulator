@@ -2,7 +2,10 @@ simulation:
   timestep: 0.03
   end_time: 300.0
   graphical: true
-  train: false
+  save_csv: true
+  save_output: results/
+  show_graphs: false
+  save_graphs: true
 
 
 robot:
@@ -11,8 +14,8 @@ robot:
   mission:
     waypoints:
       - [0, 0, 0, 0, 0, 0]
-      - [15, 0, 0, 0, 0, 0]
-      - [0, 15, 0, 0, 0, 0]
+      - [15, 0, 0, 0, 0, -3.14]
+      - [0, 15, 0, 0, 0, -1.57]
       - [0, 0, 15, 0, 0, 0]
       - [0, 0, 0, 0, 0, 0]
 
@@ -56,7 +59,7 @@ robot:
       - [0.866, 0.866, -0.839, -0.839, 0.0, 0.0, 0.0, 0.0]
       - [-0.500, 0.500, -0.545, 0.545, 0.0, 0.0, 0.0, 0.0]
       - [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
-      - [-0.033, 0.033, 0.0359, -0.0359, 0.122, 0.122, -0.117, -0.117]
+      - [-0.033, 0.033, 0.0359, -0.0359, 0.122, 0.122, -0.122, -0.122]
       - [0.0654, 0.0654, 0.0653, 0.0653, 0.218, -0.218, 0.218, -0.218]
       - [-0.158, 0.158, 0.166, -0.166, 0.0, 0.0, 0.0, 0.0]
 
@@ -66,15 +69,20 @@ robot:
     zeta: 0.9
 
   controller:
+    # type: SMC
     type: SMC
 
     eta_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
     nu_tol: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
     
     smc_params:
-      k_smc: [4.0, 4.0, 5.0, 2.0, 2.0, 2.0]
-      lambda_smc: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+      k_smc: [15.0, 15.0, 10.0, 5.0, 5.0, 10.0]
+      lambda_smc: [1.0, 1.0, 2.5, 2.0, 2.0, 2.0]
       phi: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
+    pid_params:
+      kp: [3.0, 3.0, 3.0, 4.0, 4.0, 2.0]
+      ki: [0.2, 0.2, 0.2, 0.3, 0.3, 0.1]
+      kd: [2.5, 2.5, 0.5, 0.5, 1.0, 0.5]
 
 
 # Environment parameters
@@ -86,11 +94,11 @@ environment:
     water_viscosity: 1.0e-3      # Viscosity of water in Pa.s
 
   current:
-    type: time_series  # Options: normal, jet, constant, time_series, depth_profile
+    type: constant  # Options: normal, jet, constant, time_series, depth_profile
 
     # Type: normal (randomized per axis)
     normal:
-      speed: [0.3, 0.1, 0.0]
+      speed: [0.3, -0.3, 0.0]
       std: [0.05, 0.02, 0.01]
 
     # Type: jet (fully fixed 6D vector)
@@ -99,7 +107,7 @@ environment:
 
     # Type: constant (3D only, angular assumed zero)
     constant:
-      vector: [0.1, 0.0, 0.0]
+      vector: [0.0, 0.0, 0.0]
 
     # Type: time_series (indexed array of 6D vectors)
     time_series:

@@ -2,7 +2,10 @@ simulation:
   timestep: 0.1
   end_time: 10000.0
   graphical: true
-  train: false
+  save_csv: true
+  save_output: results/
+  show_graphs: false
+  save_graphs: true
 
 
 robot:

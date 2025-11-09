@@ -11,7 +11,10 @@ simulation:
   timestep: <float>       # The duration of each simulation step (in seconds).
   end_time: <float>       # Total time the simulation should run (in seconds).
   graphical: <bool>       # Enable or disable 3D visualization during simulation.
-  train: <bool>           # Whether the simulation is run in training mode (for learning algorithms).
+  show_graphs: <bool>     # Whether simulation graphs are shown.
+  save_graphs: <bool>     # Whether simulation graphs are saved.
+  save_csv: <bool>        # Whether the simulation is saved in a csv.
+  save_output: <string>   # Folder where all results are saved.
 ```
 
 This section sets up global options for the simulation time, rendering, and training mode.
@@ -112,7 +115,7 @@ This section defines how thruster outputs translate into robot forces and torque
 
 Defines the control strategy and the acceptable error thresholds for pose and velocity.
 
-#### ⚙️ SMC Parameters (Only if controller type is `"SMC"`)
+#### ⚙️ SMC Parameters (Taken into account only if controller type is `"SMC"`)
 
 ```yaml
     smc_params:
@@ -120,6 +123,16 @@ Defines the control strategy and the acceptable error thresholds for pose and ve
       lambda_smc: [ , , , , , ]  # Exponential convergence rates.
       phi: [ , , , , , ]         # Boundary layer thickness (reduces chattering).
 ```
+
+#### ⚙️ PID Parameters (Taken into account only if controller type is `"PID"`)
+
+```yaml
+    smc_params:
+      kp: [ , , , , , ]   # Proportionnal parameters.
+      ki: [ , , , , , ]   # Integral parameters.
+      kd: [ , , , , , ]   # Derivative parameters.
+```
+
 
 ---
 
