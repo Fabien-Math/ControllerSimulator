@@ -1,4 +1,5 @@
 simulation:
+  name: make_round
   timestep: 0.03
   end_time: 300.0
   graphical: true
