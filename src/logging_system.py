@@ -10,7 +10,9 @@ class LoggingSystem:
 		self.nus = []
 		self.nus_desired = []
 		self.thrust_forces = []
+		self.forces = []
 		self.thruster_forces = []
+		self.hydro_forces = []
 		self.commands = []
 		self.etas_err = []
 		self.abs_etas_err = []
@@ -25,6 +27,8 @@ class LoggingSystem:
 		"""Append the current robot state to logs."""
 		self.etas.append(np.array(self.robot.eta))
 		self.nus.append(np.array(self.robot.nu))
+		self.forces.append(np.array(self.robot.forces))
+		self.hydro_forces.append(np.array(self.robot.hydro_forces))
 		self.etas_desired.append(np.array(self.robot.controller.desired_tf))
 		self.nus_desired.append(np.zeros(6))
 		
@@ -46,6 +50,8 @@ class LoggingSystem:
 		"""Clear all logs."""
 		self.etas.clear()
 		self.nus.clear()
+		self.forces.clear()
+		self.hydro_forces.clear()
 		self.thrust_forces.clear()
 		self.thruster_forces.clear()
 		self.commands.clear()
@@ -60,22 +66,16 @@ class LoggingSystem:
 		self.nus_desired = np.array(self.nus_desired)
 		self.thrust_forces = np.array(self.thrust_forces)
 		self.thruster_forces = np.array(self.thruster_forces)
+		self.forces = np.array(self.forces)
+		self.hydro_forces = np.array(self.hydro_forces)
 		self.commands = np.array(self.commands)
 		self.etas_err = np.array(self.etas_err)
 		self.nus_err = np.array(self.nus_err)
 		self.timestamps = np.array(self.timestamps)
 		
 			
-	def save_to_csv(self, folder=None, launch_time=0):
+	def save_to_csv(self, folder):
 		import csv
-
-		if folder is None:
-			folder = launch_time + '/'
-		else:
-			folder = folder + '/' + launch_time + '/'
-   
-		# Create output directory if needed
-		os.makedirs(folder, exist_ok=True)
 		
 		# Construct filename
 		filename = f"output.csv"
@@ -95,6 +95,8 @@ class LoggingSystem:
 				header += [f'thrust_force_{i}' for i in range(len(self.thrust_forces[0]))]
 			if len(self.thruster_forces) and self.thruster_forces[0] is not None:
 				header += [f'thruster_force_{i}' for i in range(len(self.thruster_forces[0]))]
+			if len(self.forces) and len(self.forces[0]) > 0:
+				header += [f'force_{i}' for i in range(len(self.forces[0]))]
 			if len(self.commands) and self.commands[0] is not None:
 				header += [f'commands_{i}' for i in range(len(self.commands[0]))]
 			if len(self.etas_err) and len(self.etas_err[0]) > 0:
@@ -121,6 +123,8 @@ class LoggingSystem:
 					row += list(self.thruster_forces[i])
 				else:
 					row += []
+				if self.forces is not None and i < len(self.forces):
+					row += list(self.forces[i])
 				if self.commands is not None and i < len(self.commands):
 					row += list(self.commands[i])
 				if self.etas_err is not None and i < len(self.etas_err):

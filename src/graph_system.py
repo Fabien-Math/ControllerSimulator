@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import re
 from logging_system import LoggingSystem
@@ -22,12 +21,11 @@ plt.rcParams.update({
 plt.style.use("seaborn-v0_8")
 
 class GraphSystem:
-    def __init__(self, logger, show_graph, save_graph, save_output, launch_time):
+    def __init__(self, logger, show_graph, save_graph, folder):
         self.logger: LoggingSystem = logger
         self.show_graph = show_graph
         self.save_graph = save_graph
-        self.save_output = save_output
-        self.launch_time = launch_time 
+        self.folder = folder
         
         logger.np_format()
 
@@ -144,7 +142,7 @@ class GraphSystem:
             ax.grid(True)
 
         if self.save_graph:
-            self.save_figure(fig, self.save_output, title)
+            self.save_figure(fig, self.folder, title)
         if self.show_graph:
             plt.show()
 
@@ -200,7 +198,7 @@ class GraphSystem:
             ax.legend(lines + lines2, labels_ + labels2_, loc="upper right", fontsize=8)
 
         if self.save_graph:
-            self.save_figure(fig, self.save_output, "ThrustersForceVSCommands")
+            self.save_figure(fig, self.folder, "ThrustersForceVSCommands")
         if self.show_graph:
             plt.show()
 
@@ -216,20 +214,16 @@ class GraphSystem:
             file_format (str): File extension ('png', 'jpg', 'pdf', etc.).
             dpi (int): Resolution for raster formats.
         """
-        if folder is None:
-            folder="plots_" + self.launch_time + "/"
-        else:
-            folder = folder + '/' + self.launch_time + "/plots/"
-        
+        folder_plot = folder + "/plots/"
         # Create output directory if needed
-        os.makedirs(folder, exist_ok=True)
+        os.makedirs(folder_plot, exist_ok=True)
         
         # Generate timestamp
         safe_name = re.sub(r'[^A-Za-z0-9_\-]', '_', name)
         
         # Construct filename
         filename = f"{safe_name}.{file_format}"
-        filepath = os.path.join(folder, filename)
+        filepath = os.path.join(folder_plot, filename)
         
         # Save the figure
         fig.savefig(filepath, format=file_format, dpi=dpi, bbox_inches="tight")

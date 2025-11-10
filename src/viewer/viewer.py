@@ -9,7 +9,8 @@ from viewer.obj_manager import load_obj_with_tex, create_vertex_data, create_vbo
 
 import time
 
-
+RAD2DEG = 180 / 3.1415926535
+DEG2RAD = 180 / 3.1415926535
 class Viewer:
 	def __init__(self, robot, timestep, window_width=1200, window_height=600):
 		self.window_width = window_width
@@ -19,9 +20,10 @@ class Viewer:
 		self.dt = timestep
 
 		# Playback & animation
-		self.etas = []
-		self.nus = []
-		self.times = []
+		self.etas = None
+		self.nus = None
+		self.desired_tfs = None
+		self.times = None
 		self.frame_index = 0
 		self.frame_index_float = 0
 		self.playback_speed = 1
@@ -46,12 +48,11 @@ class Viewer:
 		self.pan_x, self.pan_y, self.pan_z = 0.0, 0.0, 0.0
 		self.mouse_prev = [0, 0]
 		self.mouse_button = None
-		self.follow_robot = False
+		self.follow_robot = True
 
 		# Other UI/State
 		self.gui = None
 		self.robot_trace = None
-
 
 	def load_sequences(self):
 		self.etas = self.robot.logger.etas
@@ -95,6 +96,45 @@ class Viewer:
 		glEnable(GL_LIGHTING)
 
 
+	def draw_robot_force(self, length=0.5, line_width=1.0, draw_on_top=False):
+		glDisable(GL_LIGHTING)
+		if draw_on_top:
+			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
+		
+		robot_pos = self.etas[self.frame_index, :3]
+		thrust_forces = self.robot.logger.thrust_forces[self.frame_index, :3]
+		total_forces = self.robot.logger.forces[self.frame_index, :3]
+		hydro_forces = self.robot.logger.hydro_forces[self.frame_index, :3]
+  
+		max_norm = np.max([np.linalg.norm(thrust_forces), np.linalg.norm(hydro_forces),np.linalg.norm(total_forces)])
+		thrust_forces /= max_norm 
+		total_forces /= max_norm
+		hydro_forces /= max_norm
+  
+		glLineWidth(line_width)  # Set thicker line width
+		glBegin(GL_LINES)
+		# Thruster force
+		glColor3f(1, 0.8, 0)
+		glVertex3f(*robot_pos)
+		glVertex3f(*(robot_pos + thrust_forces))
+  
+		# Total force
+		glColor3f(1, 0, 1)
+		glVertex3f(*robot_pos)
+		glVertex3f(*(robot_pos + total_forces))
+
+		# Hydro forces
+		glColor3f(0, 1, 1)
+		glVertex3f(*robot_pos)
+		glVertex3f(*(robot_pos + hydro_forces))
+		glEnd()
+		glLineWidth(1.0)  # Reset line width
+		
+		if draw_on_top:
+			glEnable(GL_DEPTH_TEST)  # Re-enable depth test
+		
+		glEnable(GL_LIGHTING)
+
 	def draw_ground(self, size=100, step=1):
 		glDisable(GL_LIGHTING)
 		glBegin(GL_LINES)
@@ -131,22 +171,25 @@ class Viewer:
 				glPushMatrix()
 				tf = self.etas[self.frame_index % len(self.etas)]
 				glTranslatef(*tf[:3])
-				glRotatef(tf[3] * 180 / 3.1415926535, 1.0, 0.0, 0.0)
-				glRotatef(tf[4] * 180 / 3.1415926535, 0.0, 1.0, 0.0)
-				glRotatef(tf[5] * 180 / 3.1415926535, 0.0, 0.0, 1.0)
+				glRotatef(tf[3] * RAD2DEG, 1.0, 0.0, 0.0)
+				glRotatef(tf[4] * RAD2DEG, 0.0, 1.0, 0.0)
+				glRotatef(tf[5] * RAD2DEG, 0.0, 0.0, 1.0)
 				draw_vbo_textured(self.robot_vbo, self.robot_vertex_count, self.robot_texture_id)
 				if self.gui.draw_reference_button.active:
 					self.draw_axes()
 				glPopMatrix()
+    
+		if self.gui.draw_robot_force_button.active:
+			self.draw_robot_force(draw_on_top=True);
 		
 		if self.gui.draw_wps_button.active:
 			if len(self.desired_tfs):
 				for tf in self.desired_tfs:
 					glPushMatrix()
 					glTranslatef(*tf[:3])
-					glRotatef(tf[3], 1, 0, 0)
-					glRotatef(tf[4], 0, 1, 0)
-					glRotatef(tf[5], 0, 0, 1)
+					glRotatef(tf[3] * RAD2DEG, 1, 0, 0)
+					glRotatef(tf[4] * RAD2DEG, 0, 1, 0)
+					glRotatef(tf[5] * RAD2DEG, 0, 0, 1)
 					self.draw_target_marker()
 					if self.gui.draw_reference_button.active:
 						self.draw_axes(draw_on_top=True)
@@ -156,7 +199,7 @@ class Viewer:
 			self.robot_trace.draw()
 		if self.gui.draw_reference_button.active:
 			self.draw_axes(0.5, 2, True)
-		self.gui.draw(self.robot, self.fps, self.playback_speed, self.frame_index % len(self.etas))
+		self.gui.draw(self.robot, self.fps, self.playback_speed, self.frame_index % len(self.etas), self.dt)
 
 		glutSwapBuffers()
 
@@ -185,9 +228,20 @@ class Viewer:
 			self.running = False
 			self.step_request = True
 		elif key in (b'r', b'R'):
-			self.running = True
+			self.frame_index = 0
+			self.frame_index_float = 0
 		elif key in (b'f', b'F'):
 			self.follow_robot = not self.follow_robot
+		elif key in (b'g', b'G'):
+			self.gui.draw_robot_force_button.active = not self.gui.draw_robot_force_button.active
+		elif key in (b't', b'T'):
+			self.gui.draw_trace_button.active = not self.gui.draw_trace_button.active
+		elif key in (b'w', b'W'):
+			self.gui.draw_wps_button.active = not self.gui.draw_wps_button.active
+		elif key in (b'c', b'C'):
+			self.gui.draw_reference_button.active = not self.gui.draw_reference_button.active
+		elif key in (b'm', b'M'):
+			self.gui.menu_button.active = not self.gui.menu_button.active
 		elif key == b'\x1b':  # ESC
 			print("Exiting simulation...")
 			glutLeaveMainLoop()
@@ -253,7 +307,8 @@ class Viewer:
 		self.gui.draw_reference_button.handle_mouse(state)
 		self.gui.draw_trace_button.handle_mouse(state)
 		self.gui.draw_wps_button.handle_mouse(state)
-		self.gui.draw_robot_button.handle_mouse(state)	
+		self.gui.draw_robot_button.handle_mouse(state)
+		self.gui.draw_robot_force_button.handle_mouse(state)
 
 	def hover_button(self, x, y):
 		y = self.window_height - y  # Invert Y for UI coords
@@ -265,6 +320,7 @@ class Viewer:
 		self.gui.draw_trace_button.handle_mouse_motion(x, y)
 		self.gui.draw_wps_button.handle_mouse_motion(x, y)
 		self.gui.draw_robot_button.handle_mouse_motion(x, y)
+		self.gui.draw_robot_force_button.handle_mouse_motion(x, y)
 
 
 	def motion(self, x, y):
@@ -349,9 +405,9 @@ class Viewer:
 		except Exception:
 			print("Mouse wheel not supported; zoom with +/- keys instead.")
 
-		# Load data
+		self.robot.logger.np_format()
 		self.load_sequences()
-
+  
 		# Load models
 		robot_mesh = load_obj_with_tex("config/data/BlueROV2H.obj", "config/data/BlueROVTexture.png")
 		vertex_data = create_vertex_data(*robot_mesh[:4])

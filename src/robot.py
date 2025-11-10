@@ -25,6 +25,8 @@ class Robot:
 
 		# Acceleration and angular acceleration
 		self.gamma = np.zeros(6)
+		self.forces = np.zeros(6)
+		self.hydro_forces = np.zeros(6)
 
 		# MASS PROPERTIES
 		mass_prop = robot_params["mass_properties"]
@@ -94,8 +96,10 @@ class Robot:
 
 
 	def compute_gamma(self):
+		self.hydro_forces = - np.matmul(self.D, self.nu_rel)
+		self.forces = - np.matmul(self.C, self.nu) + self.hydro_forces + self.T
 		# Update acceleration
-		self.gamma = np.matmul(self.Minv, - np.matmul(self.C, self.nu) - np.matmul(self.D, self.nu_rel) + self.T)
+		self.gamma = np.matmul(self.Minv, self.forces)
 
 
 	def update(self, dt, env):

@@ -11,6 +11,7 @@ def load_config(filename):
 		
 	simulation_cfg = cfg.get('simulation', {})
 	simulation_params = {
+		'name': simulation_cfg.get('name', "simulation"),
 		'timestep': simulation_cfg.get('timestep', 0.01),
 		'end_time': simulation_cfg.get('end_time', 10.0),
 		'graphical': simulation_cfg.get('graphical', True),
