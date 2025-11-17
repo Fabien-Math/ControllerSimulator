@@ -63,13 +63,15 @@ class ControllerManager:
 	
 
 	def compute_error(self, eta, nu):
+		J1 = R.from_euler('xyz', eta[3:]).as_matrix()
 		self.etas_err_world = self.desired_tf - eta
 		eta_err = self.desired_tf - eta
-		if np.linalg.norm(eta_err[:3]) > 1.0:
-			eta_err[:3] /= np.linalg.norm(eta_err[:3])
-
-		if np.linalg.norm(eta_err[3:]) > 0.5:
-			eta_err[3:] /= np.linalg.norm(eta_err[3:])
+		eta_err[:3] = J1.T @ eta_err[:3]
+  
+		# if np.linalg.norm(eta_err[:3]) > 1.0:
+		# 	eta_err[:3] /= np.linalg.norm(eta_err[:3])
+		# if np.linalg.norm(eta_err[3:]) > 0.5:
+		# 	eta_err[3:] /= np.linalg.norm(eta_err[3:])
 
 		self.etas_err = eta_err
 		self.nus_err = nu

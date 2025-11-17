@@ -2,6 +2,7 @@ import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from scipy.spatial.transform import Rotation as R
 
 from viewer.menu import GUI
 from viewer.robot_trace import RobotTrace
@@ -12,7 +13,7 @@ import time
 RAD2DEG = 180 / 3.1415926535
 DEG2RAD = 180 / 3.1415926535
 class Viewer:
-	def __init__(self, robot, timestep, window_width=1200, window_height=600):
+	def __init__(self, robot, timestep, window_width=1600, window_height=900):
 		self.window_width = window_width
 		self.window_height = window_height
 
@@ -102,9 +103,10 @@ class Viewer:
 			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
 		
 		robot_pos = self.etas[self.frame_index, :3]
-		thrust_forces = self.robot.logger.thrust_forces[self.frame_index, :3]
-		total_forces = self.robot.logger.forces[self.frame_index, :3]
-		hydro_forces = self.robot.logger.hydro_forces[self.frame_index, :3]
+		rotation_matrix = R.from_euler('xyz', self.etas[self.frame_index, 3:]).as_matrix()
+		thrust_forces = rotation_matrix @ self.robot.logger.thrust_forces[self.frame_index, :3]
+		total_forces = rotation_matrix @ self.robot.logger.forces[self.frame_index, :3]
+		hydro_forces = rotation_matrix @ self.robot.logger.hydro_forces[self.frame_index, :3]
   
 		max_norm = np.max([np.linalg.norm(thrust_forces), np.linalg.norm(hydro_forces),np.linalg.norm(total_forces)])
 		thrust_forces /= max_norm 
@@ -168,8 +170,8 @@ class Viewer:
 
 		if self.gui.draw_robot_button.active:
 			if len(self.etas):
-				glPushMatrix()
 				tf = self.etas[self.frame_index]
+				glPushMatrix()
 				glTranslatef(*tf[:3])
 				glRotatef(tf[3] * RAD2DEG, 1.0, 0.0, 0.0)
 				glRotatef(tf[4] * RAD2DEG, 0.0, 1.0, 0.0)
@@ -280,7 +282,7 @@ class Viewer:
 		self.last_time = self.current_time
 
 		if self.gui.draw_trace_button.active:
-			self.robot_trace.update(self.etas[:self.frame_index, :3])
+			self.robot_trace.update(self.etas[:, :3])
 
 
 		glutPostRedisplay()

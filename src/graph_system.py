@@ -49,8 +49,8 @@ class GraphSystem:
         self.plot_dof_grid(timestamps=timestamps, data_actual=nus, data_desired=nus_desired, labels=nu_labels, title="Velocity DoF overview")
         
         # Plot 2: Errors
-        self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err, title=r"Pose Error ($\eta$_err)", labels=eta_labels)
-        self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err_world, title=r"Absolute Pose Error |$\eta$_err|", labels=eta_labels)
+        self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err, title=r"Robot Pose Error ($\eta$_err)", labels=eta_labels)
+        self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err_world, title=r"World Pose Error $\eta$_err", labels=eta_labels)
 
         # Plot 3: Velocity Error and Commands
         self.plot_dof_grid(timestamps=timestamps, data_actual=nus_err, title=r"Velocity Error ($\nu$_err)", labels=nu_labels)

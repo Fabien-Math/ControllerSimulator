@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 from controller import ControllerManager
 from thruster_system import ThrusterSystem
@@ -17,6 +18,7 @@ class Robot:
 		self.eta = np.array(robot_params["initial_conditions"]["eta"], dtype=np.float64)
 		self.eta_prev = self.eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
+		self.J1 = np.zeros((3,3))
 
 		# Velocity and angular velocity
 		self.nu = np.array(robot_params["initial_conditions"]["nu"], dtype=np.float64)
@@ -101,8 +103,16 @@ class Robot:
 
 
 	def update(self, dt, env):
+		self.J1 = R.from_euler('xyz', self.eta2).as_matrix()
+		s = np.sin
+		c = np.cos
+		t = np.tan
+		phi = self.eta[3]
+		the = self.eta[4]
+		self.J2 = np.array([[1, s(phi)*t(the), c(phi)*t(the)], [0, c(phi), -s(phi)], [0, s(phi)/c(the), c(phi)/c(the)]])
 		# Update relative fluid velocity
-		self.nu_rel = self.nu - env.compute_fluid_vel(self.eta)
+		fluid_vel = env.compute_fluid_vel(self.eta)
+		self.nu_rel = self.nu - np.concatenate([self.J1 @ fluid_vel[3:], self.J2 @ fluid_vel[3:]]) 
 		# DAMPING
 		self.compute_D()
 		# CORIOLIS AND CENTRIPETAL
@@ -123,12 +133,16 @@ class Robot:
 			self.logger.log_state(self.time)
 	
 	def compute_nu(self, dt):
-		self.nu = (self.eta - self.eta_prev) / dt
+		# self.nu = (self.eta - self.eta_prev) / dt
+		self.nu += self.gamma * dt
 		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
-	
+
 	def compute_eta(self, dt):
+		# Explicit Euler integration for position
+		self.eta += np.concatenate([self.J1 @ self.nu1, self.J2 @ self.nu2]) * dt
+
 		# Verlet integration for position
-		new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
-		self.eta_prev = self.eta
-		self.eta = new_eta
+		# new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
+		# self.eta_prev = self.eta
+		# self.eta = new_eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]

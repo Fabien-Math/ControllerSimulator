@@ -4,6 +4,7 @@ import numpy as np
 class ThrusterSystem:
 	def __init__(self, thruster_params):
 		self.T = thruster_params['T']
+		self.T_inv = self.T.T @ np.linalg.inv(self.T @ self.T.T)
 		self.n_thrusters = thruster_params['n_thrusters']
 		self.min_force, self.max_force = thruster_params['thruster_limits']
 
@@ -19,7 +20,7 @@ class ThrusterSystem:
 
 	def update(self, dt, u_cmd):
 		# Compute desired thruster forces using pseudo-inverse control allocation
-		thruster_cmd = self.T.T @ u_cmd
+		thruster_cmd = self.T_inv @ u_cmd
 
 		# Clip desired thruster commands to actuator physical limits
 		thruster_cmd = np.clip(thruster_cmd, self.min_force, self.max_force)
