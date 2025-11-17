@@ -8,6 +8,9 @@ def main():
 	filename = "config/bluerov_config.yaml"
 	# filename = "config/bluerov_config_round.yaml"
 	# filename = "config/bluerov_config_point.yaml"
+	# filename = "config/bluerov_config_path.yaml"
+	# filename = "config/bluerov_config_lawnmower.yaml"
+	# filename = "config/bluerov_config_spiral.yaml"
 	# filename = "config/nautile_config.yaml"
 	
 	launch_time = time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -25,6 +28,7 @@ def main():
 	if sim_manager is not None:
 		sim_manager.simulate()
 
+	folder = None
 	if simulation_params['save_csv'] or simulation_params['save_graphs']:
 		folder = simulation_params['save_output'] + '/' + simulation_params['name'] + '_' + launch_time + '/'
   		# Create output directory if needed

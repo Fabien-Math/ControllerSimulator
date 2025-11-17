@@ -15,7 +15,7 @@ class LoggingSystem:
 		self.hydro_forces = []
 		self.commands = []
 		self.etas_err = []
-		self.abs_etas_err = []
+		self.etas_err_world = []
 		self.nus_err = []
 		self.desired_tfs = np.array(robot.controller.desired_tfs)
 		self.timestamps = []
@@ -41,7 +41,7 @@ class LoggingSystem:
 		
 		if self.errs is not None:
 			self.etas_err.append(np.array(self.robot.controller.etas_err))
-			self.abs_etas_err.append(np.array(self.robot.controller.abs_etas_err))
+			self.etas_err_world.append(np.array(self.robot.controller.etas_err_world))
 			self.nus_err.append(np.array(self.robot.controller.nus_err))
 		
 		self.timestamps.append(timestamp)
@@ -101,8 +101,8 @@ class LoggingSystem:
 				header += [f'commands_{i}' for i in range(len(self.commands[0]))]
 			if len(self.etas_err) and len(self.etas_err[0]) > 0:
 				header += [f'etas_err_{i}' for i in range(len(self.etas_err[0]))]
-			if len(self.abs_etas_err) and len(self.abs_etas_err[0]) > 0:
-				header += [f'etas_err_{i}' for i in range(len(self.abs_etas_err[0]))]
+			if len(self.etas_err_world) and len(self.etas_err_world[0]) > 0:
+				header += [f'etas_err_world{i}' for i in range(len(self.etas_err_world[0]))]
 			if len(self.nus_err) and len(self.nus_err[0]) > 0:
 				header += [f'nus_err_{i}' for i in range(len(self.nus_err[0]))]
 
@@ -129,8 +129,8 @@ class LoggingSystem:
 					row += list(self.commands[i])
 				if self.etas_err is not None and i < len(self.etas_err):
 					row += list(self.etas_err[i])
-				if self.abs_etas_err is not None and i < len(self.abs_etas_err):
-					row += list(self.abs_etas_err[i])
+				if self.etas_err_world is not None and i < len(self.etas_err_world):
+					row += list(self.etas_err_world[i])
 				if self.nus_err is not None and i < len(self.nus_err):
 					row += list(self.nus_err[i])
 

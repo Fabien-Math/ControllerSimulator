@@ -20,7 +20,7 @@ class GraphicalSimulationManager:
 			self.robot.update(self.dt, self.ocean)
 
 			if self.robot.controller.mission_finished:
-				print(f"Mision accomplished!\nTotal simulation time: {i*self.dt:.3f} s")
+				print(f"Mission accomplished!\nTotal simulation time: {i*self.dt:.3f} s")
 				break
 
 		self.robot.logger.np_format()

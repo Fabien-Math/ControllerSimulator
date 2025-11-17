@@ -107,7 +107,7 @@ class Controller:
 		self.last_desired_tf = None
 		self.mission_finished = False
 
-		self.abs_eta_err = np.zeros(6)
+		self.eta_err_world = np.zeros(6)
 		self.eta_err = np.zeros(6)
 		self.eta_tol = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05])
 		self.nu_err = np.zeros(6)
@@ -159,7 +159,7 @@ class Controller:
 					self.desired_tf = eta
 			
 	def compute_error(self, eta, nu):
-		self.abs_eta_err = self.desired_tf - eta
+		self.eta_err_world = self.desired_tf - eta
 		eta_err = self.desired_tf - eta
 		if np.linalg.norm(eta_err[:3]) > 1.0:
 			eta_err[:3] /= np.linalg.norm(eta_err[:3])
@@ -214,7 +214,7 @@ def simulate(k_smc, lambda_smc, phi, current_params, train=False):
 	nus = np.zeros((N, 6))
 	etas = np.zeros((N, 6))
 	quats = np.zeros((N, 4))
-	abs_eta_errs = np.zeros((N, 6))
+	eta_err_worlds = np.zeros((N, 6))
 	eta_errs = np.zeros((N, 6))
 	cmds = np.zeros((N, 6))
 	forces = np.zeros((N, 8))
@@ -227,7 +227,7 @@ def simulate(k_smc, lambda_smc, phi, current_params, train=False):
 
 
 		gammas[i] = bl.gamma
-		abs_eta_errs[i] = bl.controller.abs_eta_err
+		eta_err_worlds[i] = bl.controller.eta_err_world
 		eta_errs[i] = bl.controller.eta_err
 		nus[i] = bl.nu
 		etas[i] = bl.eta
@@ -246,7 +246,7 @@ def simulate(k_smc, lambda_smc, phi, current_params, train=False):
 
 	if not train:
 		compute_total_distance(etas)
-		# bplt.plot(time[:i], abs_eta_errs[:i], 'abs eta errors')
+		# bplt.plot(time[:i], eta_err_worlds[:i], 'abs eta errors')
 		# bplt.plot(time[:i], eta_errs[:i], 'eta errors')
 		# bplt.plot(time[:i], etas[:i], 'eta')
 		# bplt.plot(time[:i], cmds[:i], 'U cmd')

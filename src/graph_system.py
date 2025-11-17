@@ -33,7 +33,7 @@ class GraphSystem:
         etas = self.logger.etas  # actual pose [x, y, z, roll, pitch, yaw]
         nus = self.logger.nus    # actual velocities
         etas_err = self.logger.etas_err
-        abs_etas_err = self.logger.abs_etas_err
+        etas_err_world = self.logger.etas_err_world
         nus_err = self.logger.nus_err
         thrust_forces = self.logger.thrust_forces
         thruster_forces = self.logger.thruster_forces
@@ -50,7 +50,7 @@ class GraphSystem:
         
         # Plot 2: Errors
         self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err, title=r"Pose Error ($\eta$_err)", labels=eta_labels)
-        self.plot_dof_grid(timestamps=timestamps, data_actual=abs_etas_err, title=r"Absolute Pose Error |$\eta$_err|", labels=eta_labels)
+        self.plot_dof_grid(timestamps=timestamps, data_actual=etas_err_world, title=r"Absolute Pose Error |$\eta$_err|", labels=eta_labels)
 
         # Plot 3: Velocity Error and Commands
         self.plot_dof_grid(timestamps=timestamps, data_actual=nus_err, title=r"Velocity Error ($\nu$_err)", labels=nu_labels)

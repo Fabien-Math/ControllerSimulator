@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 from sliding_mode_controller import SlidingModeController
 from pid_controller import PIDController
@@ -11,7 +12,7 @@ class ControllerManager:
 		self.last_desired_tf = None
 		self.mission_finished = False
 
-		self.abs_etas_err = np.zeros(6)
+		self.etas_err_world = np.zeros(6)
 		self.etas_err = np.zeros(6)
 		self.eta_tol = controller_params['eta_tol']
 		self.nus_err = np.zeros(6)
@@ -62,7 +63,7 @@ class ControllerManager:
 	
 
 	def compute_error(self, eta, nu):
-		self.abs_etas_err = self.desired_tf - eta
+		self.etas_err_world = self.desired_tf - eta
 		eta_err = self.desired_tf - eta
 		if np.linalg.norm(eta_err[:3]) > 1.0:
 			eta_err[:3] /= np.linalg.norm(eta_err[:3])

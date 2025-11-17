@@ -152,7 +152,7 @@ class Viewer:
 		glLoadIdentity()
 
 		if self.follow_robot and len(self.etas):
-			tf = self.etas[self.frame_index % len(self.etas)]
+			tf = self.etas[self.frame_index]
 			pos = tf[:3]
 			self.pan_x, self.pan_y, self.pan_z = pos[0], pos[1], pos[2]
 
@@ -169,7 +169,7 @@ class Viewer:
 		if self.gui.draw_robot_button.active:
 			if len(self.etas):
 				glPushMatrix()
-				tf = self.etas[self.frame_index % len(self.etas)]
+				tf = self.etas[self.frame_index]
 				glTranslatef(*tf[:3])
 				glRotatef(tf[3] * RAD2DEG, 1.0, 0.0, 0.0)
 				glRotatef(tf[4] * RAD2DEG, 0.0, 1.0, 0.0)
@@ -199,7 +199,7 @@ class Viewer:
 			self.robot_trace.draw()
 		if self.gui.draw_reference_button.active:
 			self.draw_axes(0.5, 2, True)
-		self.gui.draw(self.robot, self.fps, self.playback_speed, self.frame_index % len(self.etas), self.dt)
+		self.gui.draw(self.robot, self.fps, self.playback_speed, self.frame_index, self.dt)
 
 		glutSwapBuffers()
 
@@ -264,7 +264,7 @@ class Viewer:
 			elapsed = self.current_time - self.fps_last_time
 			step = self.playback_speed * (self.current_time - self.last_time) / self.dt
 			self.frame_index_float += step
-			self.frame_index = int(self.frame_index_float)
+			self.frame_index = int(self.frame_index_float) % len(self.etas)
 
 			self.frame_count += 1
 			if elapsed >= 1:
@@ -275,7 +275,7 @@ class Viewer:
 		if self.step_request:
 			step = self.playback_speed
 			self.frame_index_float += step
-			self.frame_index = int(self.frame_index_float)
+			self.frame_index = int(self.frame_index_float) % len(self.etas)
 			self.step_request = False
 		self.last_time = self.current_time
 

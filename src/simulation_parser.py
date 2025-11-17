@@ -1,5 +1,6 @@
 import yaml
 import numpy as np
+from trajectory_system import TrajectorySystem
 
 def load_config(filename):
 	"""
@@ -59,9 +60,10 @@ def load_config(filename):
 	if ctrl_type != 'PID' and ctrl_type != 'SMC':
 		raise ValueError(f"Unsupported controller type: {ctrl_type}")
 	
+	mission = TrajectorySystem(robot_cfg)
 	robot_params = {
 		'name': robot_cfg.get('name', 'unknown'),
-		'mission': np.array(robot_cfg["mission"]["waypoints"]),  # shape (N, 6)
+		'mission': mission.trajectory,  # shape (N, 6)
 		'initial_conditions': {
 			'eta': np.array(robot_cfg.get('initial_conditions', {}).get('eta')),
 			'nu': np.array(robot_cfg.get('initial_conditions', {}).get('nu'))

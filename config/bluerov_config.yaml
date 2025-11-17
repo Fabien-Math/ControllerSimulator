@@ -13,7 +13,8 @@ robot:
   name: bluerov2
 
   mission:
-    waypoints:
+    type: waypoints
+    params:
       - [0, 0, 0, 0, 0, 0]
       - [15, 0, 0, 0, 0, -3.14]
       - [0, 15, 0, 0, 0, -1.57]

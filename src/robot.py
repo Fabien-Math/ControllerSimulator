@@ -14,12 +14,12 @@ def S(v):
 class Robot:
 	def __init__(self, robot_params):
 		# Position and orientation
-		self.eta = robot_params["initial_conditions"]["eta"]
+		self.eta = np.array(robot_params["initial_conditions"]["eta"], dtype=np.float64)
 		self.eta_prev = self.eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
 
 		# Velocity and angular velocity
-		self.nu = robot_params["initial_conditions"]["nu"]
+		self.nu = np.array(robot_params["initial_conditions"]["nu"], dtype=np.float64)
 		self.nu_rel = self.nu
 		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
 
@@ -35,8 +35,8 @@ class Robot:
 		self.I0 = np.array(mass_prop["I0"])
 		self.Mrb = np.zeros((6, 6))
 		self.Mrb[0:3, 0:3] =  self.m * np.identity(3)	# kg
-		self.Mrb[0:3, 3:6] = -self.m * S(self.rg)				# kg.m
-		self.Mrb[3:6, 0:3] =  self.m * S(self.rg)				# kg.m
+		self.Mrb[0:3, 3:6] = -self.m * S(self.rg)		# kg.m
+		self.Mrb[3:6, 0:3] =  self.m * S(self.rg)		# kg.m
 		self.Mrb[3:6, 3:6] =  self.I0					# kg.m2
 		self.Ma = np.array(mass_prop["Ma"])
 		self.M = self.Mrb + self.Ma
@@ -61,13 +61,12 @@ class Robot:
 		self.logger = LoggingSystem(self)
 
 
-	def compute_Crb(self):
-		self.Crb[0:3, 3:6] = -self.m * S(self.nu1) - self.m * S(self.nu2) * S(self.rg)
-		self.Crb[3:6, 0:3] = -self.m * S(self.nu1) + self.m * S(self.rg) * S(self.nu2)
-		self.Crb[3:6, 3:6] = -np.matmul(self.I0, self.nu2)
+	def compute_Crb(self):	# Page 8
+		self.Crb[0:3, 3:6] = -self.m * S(self.nu1) - self.m * S(S(self.nu2) @ self.rg)
+		self.Crb[3:6, 0:3] = -self.m * S(self.nu1) - self.m * S(S(self.nu2) @ self.rg)
+		self.Crb[3:6, 3:6] = -self.m * S(S(self.nu1) @ self.rg) - S(self.I0 @ self.nu2)
 
-
-	def compute_Ca(self):
+	def compute_Ca(self):	# Page 9
 		Ma11 = self.Ma[0:3, 0:3]
 		Ma12 = self.Ma[0:3, 3:6]
 		Ma21 = self.Ma[3:6, 0:3]
@@ -76,11 +75,10 @@ class Robot:
 		self.Ca[3:6, 0:3] = - S(np.matmul(Ma11, self.nu1) + np.matmul(Ma12, self.nu2))
 		self.Ca[3:6, 3:6] = - S(np.matmul(Ma21, self.nu1) + np.matmul(Ma22, self.nu2))
 
-
 	def compute_C(self):
 		self.compute_Crb()
 		self.compute_Ca()
-		self.C = self.Crb + self.Ca
+		# self.C = self.Crb + self.Ca
 
 
 	def compute_D(self):
@@ -126,9 +124,11 @@ class Robot:
 	
 	def compute_nu(self, dt):
 		self.nu = (self.eta - self.eta_prev) / dt
+		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
 	
 	def compute_eta(self, dt):
 		# Verlet integration for position
 		new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
 		self.eta_prev = self.eta
 		self.eta = new_eta
+		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
