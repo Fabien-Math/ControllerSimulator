@@ -205,9 +205,9 @@ class Viewer:
 				tf = self.etas[self.frame_index]
 				glPushMatrix()
 				glTranslatef(*tf[:3])
-				glRotatef(tf[3] * RAD2DEG, 1.0, 0.0, 0.0)
-				glRotatef(tf[4] * RAD2DEG, 0.0, 1.0, 0.0)
 				glRotatef(tf[5] * RAD2DEG, 0.0, 0.0, 1.0)
+				glRotatef(tf[4] * RAD2DEG, 0.0, 1.0, 0.0)
+				glRotatef(tf[3] * RAD2DEG, 1.0, 0.0, 0.0)
 				draw_vbo_textured(self.robot_vbo, self.robot_vertex_count, self.robot_texture_id)
 				if self.gui.draw_reference_button.active:
 					self.draw_axes()
@@ -224,9 +224,9 @@ class Viewer:
 				for tf in self.desired_tfs:
 					glPushMatrix()
 					glTranslatef(*tf[:3])
-					glRotatef(tf[3] * RAD2DEG, 1, 0, 0)
-					glRotatef(tf[4] * RAD2DEG, 0, 1, 0)
 					glRotatef(tf[5] * RAD2DEG, 0, 0, 1)
+					glRotatef(tf[4] * RAD2DEG, 0, 1, 0)
+					glRotatef(tf[3] * RAD2DEG, 1, 0, 0)
 					self.draw_target_marker()
 					if self.gui.draw_reference_button.active:
 						self.draw_axes(draw_on_top=True)
