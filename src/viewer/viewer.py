@@ -96,6 +96,38 @@ class Viewer:
 		
 		glEnable(GL_LIGHTING)
 
+	def draw_thrusters_thrust(self, length=1.0, line_width=1.0, draw_on_top=False):
+		glDisable(GL_LIGHTING)
+		if draw_on_top:
+			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
+		thrusters = self.robot.thrusters
+		robot_pos = self.etas[self.frame_index, :3]
+		rotation_matrix = R.from_euler('xyz', self.etas[self.frame_index, 3:]).as_matrix()
+
+
+		glLineWidth(line_width)  # Set thicker line width
+		glBegin(GL_LINES)
+		
+		for i in range(thrusters.n_thrusters):
+			thruster_pos = robot_pos + rotation_matrix @ thrusters.positions[i, :3]
+			max_abs_thrust = np.max(np.abs(thrusters.limits[i]))
+			thrust = self.robot.logger.thruster_forces[self.frame_index, i]
+			thrust_ratio = thrust / max_abs_thrust
+			max_thrust_pos = robot_pos + rotation_matrix @ (thrusters.positions[i, :3] + length * thrust_ratio * thrusters.T[:3, i])
+
+			# Thrusters
+			glColor3f(1, 1, 0)
+			glVertex3f(*thruster_pos)
+			glVertex3f(*max_thrust_pos)
+		
+		glEnd()
+		glLineWidth(1.0)  # Reset line width
+		
+		if draw_on_top:
+			glEnable(GL_DEPTH_TEST)  # Re-enable depth test
+		
+		glEnable(GL_LIGHTING)
+
 
 	def draw_robot_force(self, length=0.5, line_width=1.0, draw_on_top=False):
 		glDisable(GL_LIGHTING)
@@ -118,17 +150,17 @@ class Viewer:
 		# Thruster force
 		glColor3f(1, 0.8, 0)
 		glVertex3f(*robot_pos)
-		glVertex3f(*(robot_pos + thrust_forces))
+		glVertex3f(*(robot_pos + length * thrust_forces))
   
 		# Total force
 		glColor3f(1, 0, 1)
 		glVertex3f(*robot_pos)
-		glVertex3f(*(robot_pos + total_forces))
+		glVertex3f(*(robot_pos + length * total_forces))
 
 		# Hydro forces
 		glColor3f(0, 1, 1)
 		glVertex3f(*robot_pos)
-		glVertex3f(*(robot_pos + hydro_forces))
+		glVertex3f(*(robot_pos + length * hydro_forces))
 		glEnd()
 		glLineWidth(1.0)  # Reset line width
 		
@@ -184,6 +216,9 @@ class Viewer:
 		if self.gui.draw_robot_force_button.active:
 			self.draw_robot_force(draw_on_top=True);
 		
+		if self.gui.draw_thruster_force_button.active:
+			self.draw_thrusters_thrust(draw_on_top=True);
+
 		if self.gui.draw_wps_button.active:
 			if len(self.desired_tfs):
 				for tf in self.desired_tfs:
@@ -236,6 +271,8 @@ class Viewer:
 			self.follow_robot = not self.follow_robot
 		elif key in (b'g', b'G'):
 			self.gui.draw_robot_force_button.active = not self.gui.draw_robot_force_button.active
+		elif key in (b'h', b'H'):
+			self.gui.draw_thruster_force_button.active = not self.gui.draw_thruster_force_button.active
 		elif key in (b't', b'T'):
 			self.gui.draw_trace_button.active = not self.gui.draw_trace_button.active
 		elif key in (b'w', b'W'):

@@ -19,6 +19,8 @@ class Robot:
 		self.eta_prev = self.eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
 		self.J1 = np.zeros((3,3))
+		self.J2 = np.zeros((3,3))
+		self.J = np.zeros((6,6))
 
 		# Velocity and angular velocity
 		self.nu = np.array(robot_params["initial_conditions"]["nu"], dtype=np.float64)
@@ -101,18 +103,58 @@ class Robot:
 		# Update acceleration
 		self.gamma = np.matmul(self.Minv, self.forces)
 
+	def compute_J1(self):
+		"""
+		Rotation matrix from body frame to inertial (NED) frame.
+		"""
+		sphi = np.sin(self.eta2[0])
+		cphi = np.cos(self.eta2[0])
+		stheta = np.sin(self.eta2[1])
+		ctheta = np.cos(self.eta2[1])
+		spsi = np.sin(self.eta2[2])
+		cpsi = np.cos(self.eta2[2])
+
+		self.J1 = np.array([
+			[ctheta * cpsi,
+			sphi * stheta * cpsi - cphi * spsi,
+			cphi * stheta * cpsi + sphi * spsi],
+
+			[ctheta * spsi,
+			sphi * stheta * spsi + cphi * cpsi,
+			cphi * stheta * spsi - sphi * cpsi],
+
+			[-stheta,
+			sphi * ctheta,
+			cphi * ctheta]
+		])
+
+	def compute_J2(self):
+		"""
+		J2 matrix from Fossen formalism (Euler angle kinematics).
+		"""
+		sphi = np.sin(self.eta2[0])
+		cphi = np.cos(self.eta2[0])
+		ttheta = np.tan(self.eta2[1])
+		ctheta = np.cos(self.eta2[1])
+
+		self.J2 =  np.array([
+			[1.0,      sphi * ttheta,      cphi * ttheta],
+			[0.0,      cphi,               -sphi],
+			[0.0,      sphi / ctheta,      cphi / ctheta]
+		])
+	
+	def compute_J(self):
+		self.compute_J1()
+		self.compute_J2()
+		self.J[0:3, 0:3] = self.J1
+		self.J[3:6, 3:6] = self.J2
 
 	def update(self, dt, env):
-		self.J1 = R.from_euler('xyz', self.eta2).as_matrix()
-		s = np.sin
-		c = np.cos
-		t = np.tan
-		phi = self.eta[3]
-		the = self.eta[4]
-		self.J2 = np.array([[1, s(phi)*t(the), c(phi)*t(the)], [0, c(phi), -s(phi)], [0, s(phi)/c(the), c(phi)/c(the)]])
+		self.compute_J()
+
 		# Update relative fluid velocity
 		fluid_vel = env.compute_fluid_vel(self.eta)
-		self.nu_rel = self.nu - np.concatenate([self.J1 @ fluid_vel[3:], self.J2 @ fluid_vel[3:]]) 
+		self.nu_rel = self.nu - self.J @ fluid_vel
 		# DAMPING
 		self.compute_D()
 		# CORIOLIS AND CENTRIPETAL
@@ -134,15 +176,15 @@ class Robot:
 	
 	def compute_nu(self, dt):
 		# self.nu = (self.eta - self.eta_prev) / dt
-		self.nu += self.gamma * dt
+		self.nu += dt * self.gamma
 		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
 
 	def compute_eta(self, dt):
 		# Explicit Euler integration for position
-		self.eta += np.concatenate([self.J1 @ self.nu1, self.J2 @ self.nu2]) * dt
+		self.eta += dt * self.J @ self.nu
 
-		# Verlet integration for position
-		# new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
-		# self.eta_prev = self.eta
-		# self.eta = new_eta
+		# # Verlet integration for position
+		# # new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
+		# # self.eta_prev = self.eta
+		# # self.eta = new_eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]

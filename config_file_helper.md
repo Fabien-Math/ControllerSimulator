@@ -90,13 +90,22 @@ Damping coefficients help simulate realistic underwater drag forces.
 ### 🚀 Thruster Configuration
 
 ```yaml
-  thruster:
-    T:                      # 6xN Thruster allocation matrix
-      - [ , , , , , , , ]
+  thrusters:
     n_thrusters: <int>      # Total number of thrusters.
-    thruster_limits: [min, max]  # Force or speed limits of each thruster.
-    wn: <float>             # Natural frequency of thruster dynamics.
-    zeta: <float>           # Damping ratio for thruster response modeling.
+    thruster0:
+      name: <string>
+      position: [x, y, z, roll, pitch, yaw]
+      limits: [min, max]  # Force limits of each thruster [N].
+      wn: <float>             # Natural frequency of thruster dynamics.
+      zeta: <float>           # Damping ratio for thruster response modeling.
+    thruster1:
+      name: <string>
+      position: [x, y, z, roll, pitch, yaw]
+      limits: [min, max]  # Force limits of each thruster [N].
+      wn: <float>             # Natural frequency of thruster dynamics.
+      zeta: <float>           # Damping ratio for thruster response modeling.
+    thruster2:
+      ...
 ```
 
 This section defines how thruster outputs translate into robot forces and torques.
@@ -132,7 +141,6 @@ Defines the control strategy and the acceptable error thresholds for pose and ve
       ki: [ , , , , , ]   # Integral parameters.
       kd: [ , , , , , ]   # Derivative parameters.
 ```
-
 
 ---
 

@@ -25,13 +25,23 @@ def load_config(filename):
 	# Robot parameters
 	robot_cfg = cfg.get('robot', {})
 	# Thruster parameters
-	thruster_cfg = robot_cfg.get('thruster', {})
+	thrusters_cfg = robot_cfg.get('thrusters', {})
+	n_thursters = int(thrusters_cfg.get('n_thrusters'))
+	
+	thrusters = [{"name": "", "position": None, "force_limits": None, "wn": 0, "zeta": 0} 
+			  		for _ in range(n_thursters)]
+	for i in range(n_thursters):
+		thruster_cfg = thrusters_cfg.get('thruster'+ str(i), {})
+		thrusters[i]["name"] = thruster_cfg.get('name', "thruster" + str(i))
+		thrusters[i]["position"] = np.array(thruster_cfg.get('position', None))
+		thrusters[i]["force_limits"] = np.array(thruster_cfg.get('limits', None))
+		thrusters[i]["wn"] = np.array(thruster_cfg.get('wn', 0))
+		thrusters[i]["zeta"] = np.array(thruster_cfg.get('zeta', 0))
+
+
 	thruster_params = {
-		'T': np.array(thruster_cfg.get('T')),
-		'n_thrusters': thruster_cfg.get('n_thrusters'),
-		'thruster_limits': np.array(thruster_cfg.get('thruster_limits')),
-		'wn': thruster_cfg.get('wn'),
-		'zeta': thruster_cfg.get('zeta'),
+		'n_thrusters': n_thursters,
+		'thrusters': thrusters,
 	}
 
 	# Controller parameters

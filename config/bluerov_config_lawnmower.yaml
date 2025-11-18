@@ -6,7 +6,7 @@ simulation:
   save_csv: false
   save_output: results/
   show_graphs: false
-  save_graphs: false
+  save_graphs: true
 
 
 robot:
@@ -55,19 +55,72 @@ robot:
       - [0, 0, 0, 0, 1.55, 0]
       - [0, 0, 0, 0, 0, 1.55]
 
-  thruster:
-    T:                          # Thruster allocation matrix (6x8)
-      - [0.866, 0.866, -0.839, -0.839, 0.0, 0.0, 0.0, 0.0]
-      - [-0.500, 0.500, -0.545, 0.545, 0.0, 0.0, 0.0, 0.0]
-      - [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
-      - [-0.033, 0.033, 0.0359, -0.0359, 0.122, 0.122, -0.122, -0.122]
-      - [0.0654, 0.0654, 0.0653, 0.0653, 0.218, -0.218, 0.218, -0.218]
-      - [-0.158, 0.158, 0.166, -0.166, 0.0, 0.0, 0.0, 0.0]
-
+  thrusters:
     n_thrusters: 8
-    thruster_limits: [-35, 45]
-    wn: 8
-    zeta: 0.9
+      # -----------------------------------------------------
+      #  HORIZONTAL THRUSTERS (VECTOR 30°)
+      #  Positions approximate official CAD center-of-thrust
+      # -----------------------------------------------------
+    thruster0:
+      name: HFR  # Horizontal Front Right
+      position: [ 0.140,  0.104, 0.066, 0.0, 0.0,  -0.523599 ]   # +45°
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster1:
+      name: HFL  # Horizontal Front Left
+      position: [ 0.140, -0.104, 0.066, 0.0, 0.0, 0.523599 ]   # -45°
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster2:
+      name: HRR  # Horizontal Rear Right
+      position: [ -0.140,  0.104, 0.066, 0.0, 0.0,  -2.617994 ]  # +135°
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster3:
+      name: HRL  # Horizontal Rear Left
+      position: [ -0.140, -0.104, 0.066, 0.0, 0.0, 2.617994 ]  # -135°
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    # -----------------------------------------------------
+    #  VERTICAL THRUSTERS (HEAVY UPGRADE: 4 VERTICAL MOTORS)
+    #  Positioned at the 4 corners of the frame
+    #  Pitch = -90° because using XYZ Euler → thrust DOWN
+    # -----------------------------------------------------
+    thruster4:
+      name: VFR  # Vertical Front Right
+      position: [ 0.120,  0.218, 0.003,  0.0, -1.5708, 0.0 ]   # down
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster5:
+      name: VFL  # Vertical Front Left
+      position: [ 0.120, -0.218, 0.003,  0.0, -1.5708, 0.0 ]
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster6:
+      name: VRR  # Vertical Rear Right
+      position: [ -0.120,  0.218, 0.003, 0.0, -1.5708, 0.0 ]
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
+
+    thruster7:
+      name: VRL  # Vertical Rear Left
+      position: [ -0.120, -0.218, 0.003, 0.0, -1.5708, 0.0 ]
+      limits: [-35, 45]
+      wn: 8
+      zeta: 0.9
 
   controller:
     type: SMC
@@ -76,8 +129,8 @@ robot:
     nu_tol: [1, 1, 1, 1, 1, 1]
     
     smc_params:
-      k_smc: [15.0, 15.0, 15.0, 4.0, 4.0, 6.0]
-      lambda_smc: [1.0, 1.0, 1.0, 2.0, 2.0, 2.0]
+      k_smc: [10.0, 10.0, 10.0, 2.0, 2.0, 3.0]
+      lambda_smc: [2.0, 2.0, 3.0, 1.0, 1.0, 1.0]
       phi: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
 
 
@@ -90,7 +143,7 @@ environment:
     water_viscosity: 1.0e-3      # Viscosity of water in Pa.s
 
   current:
-    type: normal  # Options: normal, jet, constant, time_series, depth_profile
+    type: constant  # Options: normal, jet, constant, time_series, depth_profile
 
     # Type: normal (randomized per axis)
     normal:
