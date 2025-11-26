@@ -287,11 +287,13 @@ class Viewer:
 
 	def special_keys(self, key, x, y):
 		if key == GLUT_KEY_LEFT:
-			self.playback_speed = max(1/2**6, self.playback_speed / 2)
+			self.playback_speed = np.sign(self.playback_speed) * max(1/2**6, np.abs(self.playback_speed) / 2)
 		elif key == GLUT_KEY_DOWN:
-			self.playback_speed = 1.0
+			self.playback_speed = np.abs(self.playback_speed)
+		elif key == GLUT_KEY_UP:
+			self.playback_speed = -np.abs(self.playback_speed)
 		elif key == GLUT_KEY_RIGHT:
-			self.playback_speed = min(2**6, self.playback_speed * 2)
+			self.playback_speed = np.sign(self.playback_speed) * min(2**6, np.abs(self.playback_speed) * 2)
 
 	def update(self, value):
 		if not self.initialized:
