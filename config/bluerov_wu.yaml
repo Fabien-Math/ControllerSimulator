@@ -1,12 +1,12 @@
 simulation:
-  name: "waypoints"
+  name: "full_test_current"
   timestep: 0.03
   end_time: 300.0
   graphical: true
   save_csv: false
   save_output: results/
   show_graphs: false
-  save_graphs: true
+  save_graphs: false
 
 
 robot:
@@ -15,25 +15,17 @@ robot:
   mission:
     type: waypoints
     params:
+      # - [1, 0, 0, 0, 0, 0]
+      # - [0, 1, 0, 0, 0, 0]
+      # - [0, 0, 1, 0, 0, 0]
+      # - [0, 0, 0, 1, 0, 0]
+      # - [0, 0, 0, 0, 1, 0]
+      # - [0, 0, 0, 0, 0, 1]
       - [0, 0, 10, 0, 0, 0]
       - [5, 0, 10, 0, 0, 0]
       - [5, 5, 10, 0, 0, 0]
       - [0, 5, 10, 0, 0, 0]
-      # - [0, 10, 0, 0, 0, 0]
-      # - [0, 10, 0, 0, 0, 3.14]
-      # - [0, 0, 0, 0, 0, 3.14]
-      # - [0, 0, 0, 0, 0, 0]
-      # - [10, 0, 0, 0, 0, 0]
-      # - [10, 10, 0, 0, 0, 0]
-      # - [10, 10, 10, 0, 0, 0]
-      # - [10, 10, 10, 0, 0, 0]
-      # - [10, 10, 0, 0, 0, 0]
-      # - [10, 0, 0, 0, 0, 0]
-      # - [0, 0, 0, 0, 0, 0]
-      # # - [15, 0, 0, 0, 0, -3.14]
-      # - [0, 15, 0, 0, 0, -1.57]
-      # - [0, 0, 15, 0, 0, 0]
-      # - [0, 0, 0, 0, 0, 0]
+      - [0, 0, 10, 0, 0, 0]
 
   initial_conditions:
     eta: [0, 0, 10, 0, 0, 0]
@@ -78,28 +70,28 @@ robot:
       # -----------------------------------------------------
     thruster0:
       name: HFR  # Horizontal Front Right
-      position: [ 0.140,  0.104, 0.066, 0.0, 0.0,  -0.523599 ]   # +30°
+      position: [ 0.156,  0.111, 0.085, 0.0, 0.0, -0.78539816339 ]   # +45°
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster1:
       name: HFL  # Horizontal Front Left
-      position: [ 0.140, -0.104, 0.066, 0.0, 0.0, 0.523599 ]   # -30°
+      position: [ 0.156, -0.111, 0.085, 0.0, 0.0, 0.78539816339 ]   # -45°
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster2:
       name: HRR  # Horizontal Rear Right
-      position: [ -0.140,  0.104, 0.066, 0.0, 0.0,  -2.617994 ]  # -150°
+      position: [ -0.156,  0.111, 0.085, 0.0, 0.0,  -2.35619449019 ]  # +135°
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster3:
       name: HRL  # Horizontal Rear Left
-      position: [ -0.140, -0.104, 0.066, 0.0, 0.0, 2.617994 ]  # +150°
+      position: [ -0.156, -0.111, 0.085, 0.0, 0.0, 2.35619449019 ]  # -135°
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
@@ -111,43 +103,39 @@ robot:
     # -----------------------------------------------------
     thruster4:
       name: VFR  # Vertical Front Right
-      position: [ 0.120,  0.218, 0.003,  0.0, -1.5708, 0.0 ]   # down
+      position: [ 0.120,  0.218, 0.0,  0.0, -1.5708, 0.0 ]   # down
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster5:
       name: VFL  # Vertical Front Left
-      position: [ 0.120, -0.218, 0.003,  0.0, -1.5708, 0.0 ]
+      position: [ 0.120, -0.218, 0.0,  0.0, -1.5708, 0.0 ]
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster6:
       name: VRR  # Vertical Rear Right
-      position: [ -0.120,  0.218, 0.003, 0.0, -1.5708, 0.0 ]
+      position: [ -0.120,  0.218, 0.0, 0.0, -1.5708, 0.0 ]
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
     thruster7:
       name: VRL  # Vertical Rear Left
-      position: [ -0.120, -0.218, 0.003, 0.0, -1.5708, 0.0 ]
+      position: [ -0.120, -0.218, 0.0, 0.0, -1.5708, 0.0 ]
       limits: [-35, 45]
       wn: 8
       zeta: 0.9
 
   controller:
-    # type: SMC
     type: PID
 
-    eta_tol: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    eta_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
     nu_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
-    
-    smc_params:
-      k_smc: [10.0, 10.0, 5.0, 0.1, 0.1, 1.0]
-      lambda_smc: [1.0, 1.0, 5.0, 0.1, 0.1, 2.0]
-      phi: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
+    cmd_offset: [0.0, 0.0, 2.0, 0.0, 0.0, 0.0]
+
     pid_params:
       kp: [3.0, 3.0, 3.0, 4.0, 4.0, 2.0]
       ki: [0.2, 0.2, 0.2, 0.3, 0.3, 0.1]
@@ -176,7 +164,8 @@ environment:
 
     # Type: constant (3D only, angular assumed zero)
     constant:
-      vector: [0.1, 0.1, 0.0]
+      vector: [0.0, 0.0, 0.0]
+      # vector: [0.1, 0.1, 0.0]
 
     # Type: time_series (indexed array of 6D vectors)
     time_series:
