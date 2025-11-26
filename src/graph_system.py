@@ -62,7 +62,9 @@ class GraphSystem:
         
         # Plot 5: Thruster forces vs Command
         self.plot_command_vs_thrust(timestamps=timestamps, commands=commands, thrust_forces=thrust_forces)
-        
+
+        if (show_graph):
+            plt.show()
 
         
     
@@ -143,8 +145,7 @@ class GraphSystem:
 
         if self.save_graph:
             self.save_figure(fig, self.folder, title)
-        if self.show_graph:
-            plt.show()
+
 
         
     def plot_command_vs_thrust(self, timestamps, commands, thrust_forces, n_rows=2, n_cols=None):
@@ -173,7 +174,7 @@ class GraphSystem:
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 3.5 * n_rows))
         fig.suptitle("Thruster Commands vs Actual Thrust Forces", fontsize=18, fontweight='bold')
         axes = np.atleast_2d(axes)
-
+        dofs = ['x', 'y', 'z', 'roll', 'pitch', 'yaw']
         for i in range(n_rows * n_cols):
             row, col = divmod(i, n_cols)
             ax = axes[row, col]
@@ -183,24 +184,18 @@ class GraphSystem:
                 continue
 
             ax.plot(timestamps, commands[:, i], label="Command", color='tab:blue', lw=1.8)
-            ax2 = ax.twinx()
-            ax2.plot(timestamps, thrust_forces[:, i], label="Thrust", color='tab:orange', lw=1.8)
+            ax.plot(timestamps, thrust_forces[:, i], label="Thrust", color='tab:orange', lw=1.8)
 
-            ax.set_title(f"Thruster {i+1}")
+            ax.set_title(dofs[i])
             ax.set_xlabel("Time [s]")
-            ax.set_ylabel("Command", color='tab:blue')
-            ax2.set_ylabel("Thrust [N]", color='tab:orange')
+            ax.set_ylabel("Value [N]")
             ax.grid(True)
+            ax.legend(loc='upper right', fontsize=8)
 
-            # Combine legends from both axes
-            lines, labels_ = ax.get_legend_handles_labels()
-            lines2, labels2_ = ax2.get_legend_handles_labels()
-            ax.legend(lines + lines2, labels_ + labels2_, loc="upper right", fontsize=8)
 
         if self.save_graph:
             self.save_figure(fig, self.folder, "ThrustersForceVSCommands")
-        if self.show_graph:
-            plt.show()
+
 
     
     def save_figure(self, fig, folder=None, name="plot", file_format="png", dpi=300):

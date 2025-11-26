@@ -50,7 +50,8 @@ def load_config(filename):
 	controller_params = {
 						'type': ctrl_type,
 					  	'eta_tol': np.array(controller_cfg.get('eta_tol')),
-        				'nu_tol': np.array(controller_cfg.get('nu_tol'))
+        				'nu_tol': np.array(controller_cfg.get('nu_tol')),
+						'cmd_offset': np.array(controller_cfg.get('cmd_offset', [0]*6)),
 	}
 
 	if ctrl_type == 'SMC':

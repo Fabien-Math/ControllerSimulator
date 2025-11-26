@@ -16,11 +16,14 @@ class Robot:
 	def __init__(self, robot_params):
 		# Position and orientation
 		self.eta = np.array(robot_params["initial_conditions"]["eta"], dtype=np.float64)
+		self.eta_p = np.zeros(6)
 		self.eta_prev = self.eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
 		self.J1 = np.zeros((3,3))
 		self.J2 = np.zeros((3,3))
 		self.J = np.zeros((6,6))
+		self.J_inv = np.zeros((6,6))
+		self.lastJ = np.zeros((6,6))
 
 		# Velocity and angular velocity
 		self.nu = np.array(robot_params["initial_conditions"]["nu"], dtype=np.float64)
@@ -56,8 +59,15 @@ class Robot:
 		self.Ca = np.zeros((6, 6))
 		self.C = np.zeros((6, 6))
 
+		# VOLUMETRIC FORCES
+		self.G = np.zeros(6)
+
+		# EXTERNAL FORCES
+		self.T = np.zeros(6)
+
+
 		self.thrusters = ThrusterSystem(robot_params["thruster"])
-		self.controller = ControllerManager(robot_params["controller"], self.thrusters)
+		self.controller = ControllerManager(self, robot_params["controller"], self.thrusters)
 		self.controller.desired_tfs = list(robot_params['mission'])
 
 		self.time = 0
@@ -70,6 +80,7 @@ class Robot:
 		self.Crb[3:6, 0:3] = -self.m * S(self.nu1) - self.m * S(S(self.nu2) @ self.rg)
 		self.Crb[3:6, 3:6] = -self.m * S(S(self.nu1) @ self.rg) - S(self.I0 @ self.nu2)
 
+
 	def compute_Ca(self):	# Page 9
 		Ma11 = self.Ma[0:3, 0:3]
 		Ma12 = self.Ma[0:3, 3:6]
@@ -79,10 +90,11 @@ class Robot:
 		self.Ca[3:6, 0:3] = - S(np.matmul(Ma11, self.nu1) + np.matmul(Ma12, self.nu2))
 		self.Ca[3:6, 3:6] = - S(np.matmul(Ma21, self.nu1) + np.matmul(Ma22, self.nu2))
 
+
 	def compute_C(self):
 		self.compute_Crb()
 		self.compute_Ca()
-		# self.C = self.Crb + self.Ca
+		self.C = self.Crb + self.Ca
 
 
 	def compute_D(self):
@@ -90,18 +102,32 @@ class Robot:
 
 
 	def compute_T(self, dt):
-		self.T = np.zeros(6)
-		self.T[2] = -2	# N (Restitution force: gravity + buoyancy)
+		self.G = np.zeros(6)
+		self.G[2] = -2	# N (Restitution force: gravity + buoyancy)
 
 		self.controller.update(dt, self.eta, self.nu)
+		self.T = np.zeros(6)
 		self.T += self.thrusters.force
 
 
-	def compute_gamma(self):
-		self.hydro_forces = - np.matmul(self.D, self.nu_rel)
-		self.forces = - np.matmul(self.C, self.nu) + self.hydro_forces + self.T
+	def compute_gamma(self, dt):
+		J_invT = self.J_inv.T
+		J_p = (self.J - self.lastJ) / dt
+
+		M_eta = J_invT @ self.M @ self.J_inv
+		M_inv_eta = np.linalg.inv(M_eta)
+		
+		C_eta = J_invT @ (self.C - self.M @ self.J_inv @ J_p) @ self.J_inv
+		D_eta = J_invT @ self.D @ self.J_inv
+		G_eta = J_invT @ self.G
+		T_eta = J_invT @ self.T
+
+		self.hydro_forces = - np.matmul(D_eta, self.J @ self.nu_rel)
+		self.coriolis_centripetal_forces = - np.matmul(C_eta, self.J @ self.nu_rel)
+		self.forces = self.coriolis_centripetal_forces + self.hydro_forces + T_eta + G_eta
 		# Update acceleration
-		self.gamma = np.matmul(self.Minv, self.forces)
+		self.gamma = np.matmul(M_inv_eta, self.forces)
+
 
 	def compute_J1(self):
 		"""
@@ -148,13 +174,15 @@ class Robot:
 		self.compute_J2()
 		self.J[0:3, 0:3] = self.J1
 		self.J[3:6, 3:6] = self.J2
+		self.J_inv = np.linalg.inv(self.J)
+
 
 	def update(self, dt, env):
 		self.compute_J()
 
 		# Update relative fluid velocity
 		fluid_vel = env.compute_fluid_vel(self.eta)
-		self.nu_rel = self.nu - self.J @ fluid_vel
+		self.nu_rel = self.nu - fluid_vel
 		# DAMPING
 		self.compute_D()
 		# CORIOLIS AND CENTRIPETAL
@@ -163,7 +191,7 @@ class Robot:
 		self.compute_T(dt)
 
 		# Acceleration calculation
-		self.compute_gamma()
+		self.compute_gamma(dt)
 
 		# Velocity calculation
 		self.compute_nu(dt)
@@ -171,20 +199,23 @@ class Robot:
 		self.compute_eta(dt)
 
 		self.time += dt
+		self.lastJ = self.J.copy()
 		if self.log:
 			self.logger.log_state(self.time)
 	
 	def compute_nu(self, dt):
-		# self.nu = (self.eta - self.eta_prev) / dt
-		self.nu += dt * self.gamma
+		self.eta_p = (self.eta - self.eta_prev) / dt
+		# self.eta_p += self.gamma * dt
+
+		self.nu = self.J_inv @ self.eta_p
 		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
 
 	def compute_eta(self, dt):
 		# Explicit Euler integration for position
-		self.eta += dt * self.J @ self.nu
+		# self.eta += self.eta_p * dt
 
-		# # Verlet integration for position
-		# # new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
-		# # self.eta_prev = self.eta
-		# # self.eta = new_eta
+		# Verlet integration for position
+		new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
+		self.eta_prev = self.eta
+		self.eta = new_eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]

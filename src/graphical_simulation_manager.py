@@ -19,6 +19,11 @@ class GraphicalSimulationManager:
 		for i in tqdm.tqdm(range(int(self.end_time/self.dt))):
 			self.robot.update(self.dt, self.ocean)
 
+
+			if np.isnan(np.sum(self.robot.eta)) or np.linalg.norm(self.robot.nu1) > 4  or np.linalg.norm(self.robot.nu2) > np.pi:
+				print(f"Mission failed!\nRobot fucked up!")
+				break
+
 			if self.robot.controller.mission_finished:
 				print(f"Mission accomplished!\nTotal simulation time: {i*self.dt:.3f} s")
 				break

@@ -6,7 +6,7 @@ from pid_controller import PIDController
 from thruster_system import ThrusterSystem
 
 class ControllerManager:
-	def __init__(self, controller_params: dict, thruster_system: ThrusterSystem):
+	def __init__(self, robot, controller_params: dict, thruster_system: ThrusterSystem):
 		self.desired_tfs = []
 		self.desired_tf = None
 		self.last_desired_tf = None
@@ -17,15 +17,17 @@ class ControllerManager:
 		self.eta_tol = controller_params['eta_tol']
 		self.nus_err = np.zeros(6)
 		self.nu_tol = controller_params['nu_tol']
+		self.cmd_offset = controller_params['cmd_offset']
 
+		self.robot = robot
 		self.T = thruster_system.T
 		self.thrusters = thruster_system
 		self.f_thrust = np.zeros(6)
 
 		if controller_params['type'] == 'SMC':
-			self.controller = SlidingModeController(controller_params)
+			self.controller = SlidingModeController(robot, controller_params)
 		elif controller_params['type'] == 'PID':
-			self.controller = PIDController(controller_params)
+			self.controller = PIDController(robot, controller_params)
 
 
 	def add_waypoint(self, wps, overwrite = False):
@@ -63,11 +65,22 @@ class ControllerManager:
 	
 
 	def compute_error(self, eta, nu):
-		J1 = R.from_euler('xyz', eta[3:]).as_matrix()
 		self.etas_err_world = self.desired_tf - eta
 		eta_err = self.desired_tf - eta
+		
+		J1 = R.from_euler('xyz', eta[3:]).as_matrix()
+		R_d = R.from_euler('xyz', self.desired_tf[3:]).as_matrix()
+		S = 0.5 * (R_d.T @ J1 - J1.T @ R_d).T   # skew-symmetric matrix
+
 		eta_err[:3] = J1.T @ eta_err[:3]
-  
+
+		# eta_err[3:] = np.array([
+		# 	S[2, 1],
+		# 	S[0, 2],
+		# 	S[1, 0]
+    	# ])
+
+
 		# if np.linalg.norm(eta_err[:3]) > 1.0:
 		# 	eta_err[:3] /= np.linalg.norm(eta_err[:3])
 		# if np.linalg.norm(eta_err[3:]) > 0.5:
@@ -83,5 +96,5 @@ class ControllerManager:
 		self.compute_error(eta, nu)
 
 		self.controller.update(dt, self.etas_err, self.nus_err)
-		self.thrusters.update(dt, self.controller.cmd)  # Apply thruster dynamics
+		self.thrusters.update(dt, self.controller.cmd + self.cmd_offset)  # Apply thruster dynamics
 		

@@ -16,6 +16,8 @@ class ThrusterSystem:
 
 		self.compute_T()
 		self.T_inv = self.T.T @ np.linalg.inv(self.T @ self.T.T)
+		# np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+		# print(self.T)
 		
 		# States: force and velocity for each thruster
 		self.force = np.zeros(6)
@@ -55,6 +57,7 @@ class ThrusterSystem:
 	def update(self, dt, u_cmd):
 		# Compute desired thruster forces using pseudo-inverse control allocation
 		thruster_cmd = self.T_inv @ u_cmd
+		
 
 		# Clip desired thruster commands to actuator physical limits
 		thruster_cmd = np.clip(thruster_cmd, self.limits[:, 0], self.limits[:, 1])
@@ -66,5 +69,5 @@ class ThrusterSystem:
 		self.thrust += self.rpm * dt
 
 		# Clip again to be sure the physical force doesn't exceed limits
-		self.force = self.T @ np.clip(self.thrust, self.limits[:, 0], self.limits[:, 1])
+		self.force = self.T @ np.clip(self.thrust, self.limits[:, 0], self.limits[:, 1]) 
 
