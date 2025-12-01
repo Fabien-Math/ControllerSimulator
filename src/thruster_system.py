@@ -8,8 +8,7 @@ class ThrusterSystem:
 
 		self.names = np.array([t['name'] for t in self.thrusters])
 		self.positions = np.array([t['position'] for t in self.thrusters])
-		self.limits = np.array([t['force_limits'] for t in self.thrusters])
-		
+		self.thrust_limits = np.array([t['thrust_limits'] for t in self.thrusters])
 		# 2nd-order actuator model for each thruster: x'' + 2ζωx' + ω²x = ω²u
 		self.wn = np.array([t['wn'] for t in self.thrusters])
 		self.zeta = np.array([t['zeta'] for t in self.thrusters])
@@ -53,21 +52,18 @@ class ThrusterSystem:
 			
 			self.T[:, i] = [fx, fy, fz, tx, ty, tz]
 
-
 	def update(self, dt, u_cmd):
 		# Compute desired thruster forces using pseudo-inverse control allocation
 		thruster_cmd = self.T_inv @ u_cmd
-		
-
 		# Clip desired thruster commands to actuator physical limits
-		thruster_cmd = np.clip(thruster_cmd, self.limits[:, 0], self.limits[:, 1])
+		thruster_cmd = np.clip(thruster_cmd, self.thrust_limits[:, 0], self.thrust_limits[:, 1])
 
 		# Update thruster forces using second-order propeller dynamics
-		# Discretize using explicit Euler (or better with RK4 if you want more accuracy)
+		# Discretize using explicit Euler
 		accel = self.wn**2 * (thruster_cmd - self.thrust) - 2 * self.zeta * self.wn * self.rpm
 		self.rpm += accel * dt
 		self.thrust += self.rpm * dt
 
 		# Clip again to be sure the physical force doesn't exceed limits
-		self.force = self.T @ np.clip(self.thrust, self.limits[:, 0], self.limits[:, 1]) 
+		self.force = self.T @ np.clip(self.thrust, self.thrust_limits[:, 0], self.thrust_limits[:, 1]) 
 

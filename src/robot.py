@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from controller import ControllerManager
+from controller_manager import ControllerManager
 from thruster_system import ThrusterSystem
 from logging_system import LoggingSystem
 
@@ -68,7 +68,7 @@ class Robot:
 
 		self.thrusters = ThrusterSystem(robot_params["thruster"])
 		self.controller = ControllerManager(self, robot_params["controller"], self.thrusters)
-		self.controller.desired_tfs = list(robot_params['mission'])
+		self.controller.desired_etas = list(robot_params['mission'])
 
 		self.time = 0
 		self.log = True
@@ -127,6 +127,8 @@ class Robot:
 		self.forces = self.coriolis_centripetal_forces + self.hydro_forces + T_eta + G_eta
 		# Update acceleration
 		self.gamma = np.matmul(M_inv_eta, self.forces)
+		# np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+		# print(self.forces)
 
 
 	def compute_J1(self):

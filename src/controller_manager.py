@@ -7,9 +7,9 @@ from thruster_system import ThrusterSystem
 
 class ControllerManager:
 	def __init__(self, robot, controller_params: dict, thruster_system: ThrusterSystem):
-		self.desired_tfs = []
-		self.desired_tf = None
-		self.last_desired_tf = None
+		self.desired_etas = []
+		self.desired_eta = None
+		self.last_desired_eta = None
 		self.mission_finished = False
 
 		self.etas_err_world = np.zeros(6)
@@ -33,61 +33,45 @@ class ControllerManager:
 	def add_waypoint(self, wps, overwrite = False):
 		if overwrite:
 			if len(np.shape(wps) > 1):
-				self.desired_tfs = wps
+				self.desired_etas = wps
 			else:
-				self.desired_tfs = [wps]
+				self.desired_etas = [wps]
 		else:
 			if len(np.shape(wps)) > 1:
 				for wp in wps:
-					self.desired_tfs.append(wp)
+					self.desired_etas.append(wp)
 			else:
-				self.desired_tfs.append(wps)
+				self.desired_etas.append(wps)
 	
 
 	def manage_waypoint(self, eta, nu):
-		if self.desired_tf is not None:
+		if self.desired_eta is not None:
 			if np.all(np.abs(self.etas_err) < self.eta_tol) and np.all(np.abs(self.nus_err) < self.nu_tol) :
-				self.last_desired_tf = self.desired_tf
+				self.last_desired_eta = self.desired_eta
 				# print('Arrived')
-				self.desired_tf = None
+				self.desired_eta = None
 			else:
 				return
 		
-		if self.desired_tf is None:
-			if len(self.desired_tfs):
-				self.desired_tf = self.desired_tfs.pop(0)
+		if self.desired_eta is None:
+			if len(self.desired_etas):
+				self.desired_eta = self.desired_etas.pop(0)
 			else:
 				self.mission_finished = True
-				if self.last_desired_tf is not None:
-					self.desired_tf = self.last_desired_tf
+				if self.last_desired_eta is not None:
+					self.desired_eta = self.last_desired_eta
 				else:
-					self.desired_tf = eta
+					self.desired_eta = eta
 	
 
 	def compute_error(self, eta, nu):
-		self.etas_err_world = self.desired_tf - eta
-		eta_err = self.desired_tf - eta
-		
-		J1 = R.from_euler('xyz', eta[3:]).as_matrix()
-		R_d = R.from_euler('xyz', self.desired_tf[3:]).as_matrix()
-		S = 0.5 * (R_d.T @ J1 - J1.T @ R_d).T   # skew-symmetric matrix
-
-		eta_err[:3] = J1.T @ eta_err[:3]
-
-		# eta_err[3:] = np.array([
-		# 	S[2, 1],
-		# 	S[0, 2],
-		# 	S[1, 0]
-    	# ])
-
-
-		# if np.linalg.norm(eta_err[:3]) > 1.0:
-		# 	eta_err[:3] /= np.linalg.norm(eta_err[:3])
-		# if np.linalg.norm(eta_err[3:]) > 0.5:
-		# 	eta_err[3:] /= np.linalg.norm(eta_err[3:])
+		self.etas_err_world = self.desired_eta - eta
+		eta_err = np.zeros(6)
+		eta_err[:3] = self.robot.J1.T @ (self.desired_eta[:3] - eta[:3])
+		eta_err[3:] = self.desired_eta[3:] - eta[3:]
 
 		self.etas_err = eta_err
-		self.nus_err = nu
+		self.nus_err = - nu
 	
 
 	def update(self, dt, eta, nu):

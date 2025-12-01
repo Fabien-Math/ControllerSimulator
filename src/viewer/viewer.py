@@ -23,7 +23,7 @@ class Viewer:
 		# Playback & animation
 		self.etas = None
 		self.nus = None
-		self.desired_tfs = None
+		self.desired_etas = None
 		self.times = None
 		self.frame_index = 0
 		self.frame_index_float = 0
@@ -58,7 +58,7 @@ class Viewer:
 	def load_sequences(self):
 		self.etas = self.robot.logger.etas
 		self.nus = self.robot.logger.nus
-		self.desired_tfs = self.robot.logger.desired_tfs
+		self.desired_etas = self.robot.logger.desired_etas
 		self.times = self.robot.logger.timestamps
 
 	def draw_target_marker(self, size=0.05):
@@ -110,7 +110,7 @@ class Viewer:
 		
 		for i in range(thrusters.n_thrusters):
 			thruster_pos = robot_pos + rotation_matrix @ thrusters.positions[i, :3]
-			max_abs_thrust = np.max(np.abs(thrusters.limits[i]))
+			max_abs_thrust = np.max(np.abs(thrusters.thrust_limits[i]))
 			thrust = self.robot.logger.thruster_forces[self.frame_index, i]
 			thrust_ratio = thrust / max_abs_thrust
 			max_thrust_pos = robot_pos + rotation_matrix @ (thrusters.positions[i, :3] + length * thrust_ratio * thrusters.T[:3, i])
@@ -220,8 +220,8 @@ class Viewer:
 			self.draw_thrusters_thrust(draw_on_top=True);
 
 		if self.gui.draw_wps_button.active:
-			if len(self.desired_tfs):
-				for tf in self.desired_tfs:
+			if len(self.desired_etas):
+				for tf in self.desired_etas:
 					glPushMatrix()
 					glTranslatef(*tf[:3])
 					glRotatef(tf[5] * RAD2DEG, 0, 0, 1)

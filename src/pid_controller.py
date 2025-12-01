@@ -14,7 +14,7 @@ class PIDController:
 
 	def update(self, dt, eta_err, nu_err):
 		self.int_eta_err += eta_err * dt
-		self.int_eta_err = np.clip(self.int_eta_err, -5, 5)
+		self.int_eta_err = np.clip(self.int_eta_err, -10, 10)
   
 		if dt:
 			self.der_eta_err = (eta_err - self.last_eta_err ) / dt

@@ -28,13 +28,13 @@ def load_config(filename):
 	thrusters_cfg = robot_cfg.get('thrusters', {})
 	n_thursters = int(thrusters_cfg.get('n_thrusters'))
 	
-	thrusters = [{"name": "", "position": None, "force_limits": None, "wn": 0, "zeta": 0} 
+	thrusters = [{"name": "", "position": None, "thrust_limits": None, "wn": 0, "zeta": 0} 
 			  		for _ in range(n_thursters)]
 	for i in range(n_thursters):
 		thruster_cfg = thrusters_cfg.get('thruster'+ str(i), {})
 		thrusters[i]["name"] = thruster_cfg.get('name', "thruster" + str(i))
 		thrusters[i]["position"] = np.array(thruster_cfg.get('position', None))
-		thrusters[i]["force_limits"] = np.array(thruster_cfg.get('limits', None))
+		thrusters[i]["thrust_limits"] = np.array(thruster_cfg.get('thrust_limits'))
 		thrusters[i]["wn"] = np.array(thruster_cfg.get('wn', 0))
 		thrusters[i]["zeta"] = np.array(thruster_cfg.get('zeta', 0))
 
