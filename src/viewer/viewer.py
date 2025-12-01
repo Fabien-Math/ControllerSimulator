@@ -54,6 +54,8 @@ class Viewer:
 		# Other UI/State
 		self.gui = None
 		self.robot_trace = None
+		self.bool_draw_hud = True
+
 
 	def load_sequences(self):
 		self.etas = self.robot.logger.etas
@@ -69,7 +71,7 @@ class Viewer:
 		glutSolidSphere(size, 20, 20)
 		glEnable(GL_LIGHTING)
 
-	def draw_axes(self, length=0.5, line_width=1.0, draw_on_top=False):
+	def draw_axes(self, length=0.5, line_width=1.5, draw_on_top=False):
 		glDisable(GL_LIGHTING)
 		if draw_on_top:
 			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
@@ -96,7 +98,7 @@ class Viewer:
 		
 		glEnable(GL_LIGHTING)
 
-	def draw_thrusters_thrust(self, length=1.0, line_width=1.0, draw_on_top=False):
+	def draw_thrusters_thrust(self, length=1.0, line_width=1.5, draw_on_top=False):
 		glDisable(GL_LIGHTING)
 		if draw_on_top:
 			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
@@ -128,8 +130,258 @@ class Viewer:
 		
 		glEnable(GL_LIGHTING)
 
+	def draw_hud(self):
+		self.draw_robot_info_hud()
+		self.draw_current_hud()
 
-	def draw_robot_force(self, length=0.5, line_width=1.0, draw_on_top=False):
+
+	def draw_current_hud(self, radius=60):
+		"""
+		Draw a round HUD panel in the bottom-right showing the current vector.
+		"""
+
+		# ---- Retrieve current vector ----
+		current = self.robot.logger.fluid_vels[self.frame_index, :3].copy()
+		mag = np.linalg.norm(current)
+		if mag > 1e-8:
+			direction = current / mag
+		else:
+			direction = np.array([0, 0, 0], dtype=float)
+
+		# ---- Screen size ----
+		viewport = glGetIntegerv(GL_VIEWPORT)
+		screen_w, screen_h = viewport[2], viewport[3]
+
+		# ---- Switch to 2D mode ----
+		glMatrixMode(GL_PROJECTION)
+		glPushMatrix()
+		glLoadIdentity()
+		glOrtho(0, screen_w, 0, screen_h, -1, 1)
+
+		glMatrixMode(GL_MODELVIEW)
+		glPushMatrix()
+		glLoadIdentity()
+
+		glDisable(GL_LIGHTING)
+		glDisable(GL_DEPTH_TEST)
+
+		# --- Enable blending / line smoothing ---
+		glEnable(GL_BLEND)
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+		glEnable(GL_LINE_SMOOTH)
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+
+		# ---- Panel center ----
+		cx = screen_w - radius - 20
+		cy = radius + 20
+
+		# ------------------------------------------
+		# Draw circular background
+		# ------------------------------------------
+		glColor4f(0.08, 0.08, 0.08, 0.7)
+		glBegin(GL_TRIANGLE_FAN)
+		glVertex2f(cx, cy)
+		for i in range(0, 361, 3):
+			ang = np.radians(i)
+			glVertex2f(cx + np.cos(ang) * radius,
+					cy + np.sin(ang) * radius)
+		glEnd()
+
+		# ------------------------------------------
+		# Draw outline
+		# ------------------------------------------
+		glColor3f(0.25, 0.25, 0.25)
+		glLineWidth(2)
+		glBegin(GL_LINE_LOOP)
+		for i in range(0, 361, 3):
+			ang = np.radians(i)
+			glVertex2f(cx + np.cos(ang) * radius,
+					cy + np.sin(ang) * radius)
+		glEnd()
+		glLineWidth(1)
+
+		# ------------------------------------------
+		# Draw direction vector (arrow)
+		# ------------------------------------------
+		vec_length = radius * 0.75  # stay inside circle
+
+		glColor3f(0.3, 0.6, 1.0)
+		glLineWidth(2)
+		glBegin(GL_LINES)
+		glVertex2f(cx, cy)
+		glVertex2f(cx + direction[0] * vec_length,
+				cy + direction[1] * vec_length)
+		glEnd()
+
+		# ---- Draw arrow head ----
+		if mag > 1e-8:
+			end_x = cx + direction[0] * vec_length
+			end_y = cy + direction[1] * vec_length
+
+			left = np.array([-direction[1], direction[0]])
+			right = -left
+
+			ah = 10  # arrowhead size
+			glBegin(GL_TRIANGLES)
+			glVertex2f(end_x, end_y)
+			glVertex2f(end_x + left[0] * ah,
+					end_y + left[1] * ah)
+			glVertex2f(end_x + right[0] * ah,
+					end_y + right[1] * ah)
+			glEnd()
+
+		glLineWidth(1)
+
+		# ------------------------------------------
+		# Draw magnitude text under the circle
+		# ------------------------------------------
+		text = f"{mag:.2f}"
+
+		glColor3f(1, 1, 1)
+		glRasterPos2f(cx - 10, cy - radius - 15)
+
+		for ch in text:
+			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(ch))
+
+		# ---- Restore state ----
+		glEnable(GL_DEPTH_TEST)
+		glEnable(GL_LIGHTING)
+
+		glMatrixMode(GL_PROJECTION)
+		glPopMatrix()
+		glMatrixMode(GL_MODELVIEW)
+		glPopMatrix()
+
+
+	def draw_text(self, x, y, text, font=GLUT_BITMAP_9_BY_15, color=(1, 1, 1)):
+		glColor3f(*color)
+		glRasterPos2f(x, y)
+		for ch in text:
+			glutBitmapCharacter(font, ord(ch))
+
+
+	def draw_robot_info_hud(self, line_height=20, panel_width=300, panel_padding=15, border_thickness=2):
+		"""
+		Draw a cockpit-style HUD for the robot.
+		Uses self.etas[self.frame_index] and self.nus[self.frame_index].
+		"""
+		eta = self.etas[self.frame_index]
+		nu = self.nus[self.frame_index]
+
+		# --- Save OpenGL state ---
+		glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_LINE_BIT)
+		glDisable(GL_DEPTH_TEST)
+		glDisable(GL_LIGHTING)
+
+		# --- Save matrices ---
+		glMatrixMode(GL_PROJECTION)
+		glPushMatrix()
+		glLoadIdentity()
+
+		glMatrixMode(GL_MODELVIEW)
+		glPushMatrix()
+		glLoadIdentity()
+
+		# --- Setup orthographic projection ---
+		viewport = glGetIntegerv(GL_VIEWPORT)
+		width, height = viewport[2], viewport[3]
+		glOrtho(0, width, 0, height, -1, 1)
+
+		# --- Enable blending / line smoothing ---
+		glEnable(GL_BLEND)
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+		glEnable(GL_LINE_SMOOTH)
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+
+		# --- Flip Y-axis so (0,0) is top-left ---
+		glTranslatef(0, height, 0)
+		glScalef(1, -1, 1)
+
+		# --- Panel position: center-bottom ---
+		panel_height = line_height + 2 * panel_padding
+		panel_x = (width - panel_width) / 2
+		panel_y = height - panel_height - 30  # margin from bottom
+
+		# --- Draw rounded rectangle panel (approx) ---
+		# For simplicity, use multiple small line segments for rounded corners
+		corner_radius = 10
+		segments = 16
+
+		def draw_rounded_rect(x, y, w, h, r):
+			glBegin(GL_POLYGON)
+			# Bottom-left corner
+			for i in range(segments + 1):
+				theta = np.pi + (np.pi / 2) * (i / segments)
+				glVertex2f(x + r + r * np.cos(theta), y + r + r * np.sin(theta))
+			# Bottom-right
+			for i in range(segments + 1):
+				theta = 1.5 * np.pi + (np.pi / 2) * (i / segments)
+				glVertex2f(x + w - r + r * np.cos(theta), y + r + r * np.sin(theta))
+			# Top-right
+			for i in range(segments + 1):
+				theta = 0 + (np.pi / 2) * (i / segments)
+				glVertex2f(x + w - r + r * np.cos(theta), y + h - r + r * np.sin(theta))
+			# Top-left
+			for i in range(segments + 1):
+				theta = 0.5 * np.pi + (np.pi / 2) * (i / segments)
+				glVertex2f(x + r + r * np.cos(theta), y + h - r + r * np.sin(theta))
+			glEnd()
+
+		# Panel background
+		# glColor4f(0.08, 0.08, 0.08, 0.7)
+		glColor3f(0.8, 0.8, 0.8)
+		glLineWidth(border_thickness)
+		draw_rounded_rect(panel_x, panel_y, panel_width, panel_height, corner_radius)
+		glLineWidth(1)
+
+		# Panel border
+		glColor4f(0.08, 0.08, 0.08, 0.7)
+		draw_rounded_rect(panel_x, panel_y, panel_width, panel_height, corner_radius)
+
+
+		# --- Draw speed bar ---
+		speed = np.linalg.norm(nu[:3])
+		max_speed = 1.5  # adjust as needed
+		bar_width = panel_width - 2 * panel_padding
+		bar_height = 10
+		bar_x = panel_x + panel_padding
+		bar_y = panel_y + panel_padding
+
+		# Background
+		glColor3f(0.2, 0.2, 0.2)
+		glBegin(GL_QUADS)
+		glVertex2f(bar_x, bar_y)
+		glVertex2f(bar_x + bar_width, bar_y)
+		glVertex2f(bar_x + bar_width, bar_y + bar_height)
+		glVertex2f(bar_x, bar_y + bar_height)
+		glEnd()
+
+		# Filled speed
+		filled_width = min(bar_width, bar_width * (speed / max_speed))
+		if speed > max_speed:
+			glColor3f(0.9, 0.3, 0.2)
+		else:
+			glColor3f(0.3, 0.8, 1.0)
+	
+		glBegin(GL_QUADS)
+		glVertex2f(bar_x, bar_y)
+		glVertex2f(bar_x + filled_width, bar_y)
+		glVertex2f(bar_x + filled_width, bar_y + bar_height)
+		glVertex2f(bar_x, bar_y + bar_height)
+		glEnd()
+
+		# --- Draw speed text ---
+		self.draw_text(bar_x + bar_width / 2 - 20, bar_y + line_height * 1.5, f"{speed:.2f} m/s", color=(0.9, 0.9, 0.9))
+
+		# --- Restore matrices and state ---
+		glMatrixMode(GL_MODELVIEW)
+		glPopMatrix()
+		glMatrixMode(GL_PROJECTION)
+		glPopMatrix()
+		glPopAttrib()
+
+
+	def draw_robot_force(self, length=0.5, line_width=1.5, draw_on_top=False):
 		glDisable(GL_LIGHTING)
 		if draw_on_top:
 			glDisable(GL_DEPTH_TEST)  # Disable depth test to draw on top
@@ -214,10 +466,14 @@ class Viewer:
 				glPopMatrix()
     
 		if self.gui.draw_robot_force_button.active:
-			self.draw_robot_force(draw_on_top=True);
+			self.draw_robot_force(draw_on_top=True)
+
+		if self.bool_draw_hud:
+			self.draw_hud()
+
 		
 		if self.gui.draw_thruster_force_button.active:
-			self.draw_thrusters_thrust(draw_on_top=True);
+			self.draw_thrusters_thrust(draw_on_top=True)
 
 		if self.gui.draw_wps_button.active:
 			if len(self.desired_etas):
@@ -271,8 +527,10 @@ class Viewer:
 			self.follow_robot = not self.follow_robot
 		elif key in (b'g', b'G'):
 			self.gui.draw_robot_force_button.active = not self.gui.draw_robot_force_button.active
-		elif key in (b'h', b'H'):
+		elif key in (b'v', b'V'):
 			self.gui.draw_thruster_force_button.active = not self.gui.draw_thruster_force_button.active
+		elif key in (b'h', b'H'):
+			self.bool_draw_hud = not self.bool_draw_hud
 		elif key in (b't', b'T'):
 			self.gui.draw_trace_button.active = not self.gui.draw_trace_button.active
 		elif key in (b'w', b'W'):
@@ -281,6 +539,9 @@ class Viewer:
 			self.gui.draw_reference_button.active = not self.gui.draw_reference_button.active
 		elif key in (b'm', b'M'):
 			self.gui.menu_button.active = not self.gui.menu_button.active
+		elif key in (b'l', b'L'):
+			self.camera_phi = 0.0001
+			self.camera_theta = np.pi
 		elif key == b'\x1b':  # ESC
 			print("Exiting simulation...")
 			glutLeaveMainLoop()
@@ -427,7 +688,7 @@ class Viewer:
 		
 	def run(self):
 		glutInit()
-		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE)
 		glutInitWindowSize(self.window_width, self.window_height)
 		glutCreateWindow(b"3D Robot Viewer")
 		self.init_gl()

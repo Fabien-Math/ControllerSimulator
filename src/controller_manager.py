@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 from sliding_mode_controller import SlidingModeController
+from feedback_controller import FeedbackController
 from pid_controller import PIDController
 from thruster_system import ThrusterSystem
 
@@ -26,6 +27,8 @@ class ControllerManager:
 
 		if controller_params['type'] == 'SMC':
 			self.controller = SlidingModeController(robot, controller_params)
+		elif controller_params['type'] == 'FDB':
+			self.controller = FeedbackController(robot, controller_params)
 		elif controller_params['type'] == 'PID':
 			self.controller = PIDController(robot, controller_params)
 
@@ -67,8 +70,7 @@ class ControllerManager:
 	def compute_error(self, eta, nu):
 		self.etas_err_world = self.desired_eta - eta
 		eta_err = np.zeros(6)
-		eta_err[:3] = self.robot.J1.T @ (self.desired_eta[:3] - eta[:3])
-		eta_err[3:] = self.desired_eta[3:] - eta[3:]
+		eta_err = self.robot.J.T @ (self.desired_eta - eta)
 
 		self.etas_err = eta_err
 		self.nus_err = - nu

@@ -68,7 +68,12 @@ def load_config(filename):
 			'ki': pid_params.get('ki'),
 			'kd': pid_params.get('kd'),
 		})
-	if ctrl_type != 'PID' and ctrl_type != 'SMC':
+	if ctrl_type == 'FDB':
+		pid_params = controller_cfg.get('feedback_params', {})
+		controller_params.update({
+			'k': pid_params.get('k'),
+		})
+	if ctrl_type != 'PID' and ctrl_type != 'SMC' and ctrl_type != 'FDB':
 		raise ValueError(f"Unsupported controller type: {ctrl_type}")
 	
 	mission = TrajectorySystem(robot_cfg)

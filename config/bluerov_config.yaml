@@ -1,12 +1,12 @@
 simulation:
   name: "waypoints"
   timestep: 0.03
-  end_time: 200.0
+  end_time: 50.0
   graphical: true
   save_csv: false
   save_output: results/
   show_graphs: false
-  save_graphs: true
+  save_graphs: false
 
 
 robot:
@@ -139,17 +139,20 @@ robot:
       zeta: 0.7
 
   controller:
-    type: SMC
+    type: FDB
+    # type: SMC
     # type: PID
 
-    eta_tol: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+    eta_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
     nu_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
-    cmd_offset: [0.0, 0.0, 2.0, 0.0, 0.0, 0.0]
+    cmd_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     
     smc_params:
       k_smc: [16.0, 16.0, 2.0, 1.0, 3.0, 2.0]
       phi: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
       lambda_smc: [1.0, 1.0, 2.5, 2.0, 2.0, 2.0]
+    feedback_params:
+      k: [0.4, 0.4, 0.2, 0.7, 0.7, 0.6]
     pid_params:
       kp: [3.0, 3.0, 3.0, 4.0, 4.0, 2.0]
       ki: [0.2, 0.2, 0.2, 0.3, 0.3, 0.1]
@@ -165,16 +168,18 @@ environment:
     water_viscosity: 1.0e-3      # Viscosity of water in Pa.s
 
   current:
-    type: constant  # Options: normal, jet, constant, time_series, depth_profile
+    type: normal  # Options: normal, jet, constant, time_series, depth_profile
 
     # Type: normal (randomized per axis)
     normal:
       speed: [0.3, -0.3, 0.0]
-      std: [0.05, 0.02, 0.01]
+      std: [0.10, 0.05, 0.00]
 
     # Type: jet (fully fixed 6D vector)
     jet:
       vector: [0.2, 0.0, 0.0, 0, 0, 0]
+      period: 10
+      duty: 0.1
 
     # Type: constant (3D only, angular assumed zero)
     constant:

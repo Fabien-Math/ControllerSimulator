@@ -95,13 +95,13 @@ Damping coefficients help simulate realistic underwater drag forces.
     thruster0:
       name: <string>
       position: [x, y, z, roll, pitch, yaw]
-      limits: [min, max]  # Force limits of each thruster [N].
+      thrust_limits: [min, max]  # Force limits of each thruster [N].
       wn: <float>             # Natural frequency of thruster dynamics.
       zeta: <float>           # Damping ratio for thruster response modeling.
     thruster1:
       name: <string>
       position: [x, y, z, roll, pitch, yaw]
-      limits: [min, max]  # Force limits of each thruster [N].
+      thrust_limits: [min, max]  # Force limits of each thruster [N].
       wn: <float>             # Natural frequency of thruster dynamics.
       zeta: <float>           # Damping ratio for thruster response modeling.
     thruster2:
@@ -116,10 +116,12 @@ This section defines how thruster outputs translate into robot forces and torque
 
 ```yaml
   controller:
-    type: <string>          # Control method ("PID", "SMC", etc.)
+    type: <string>            # Control method ("PID", "SMC", etc.)
 
-    eta_tol: [ , , , , , ]  # Pose tolerance for each axis (x, y, z, roll, pitch, yaw).
-    nu_tol: [ , , , , , ]   # Velocity tolerance for each axis (u, v, w, p, q, r).
+    eta_tol: [ , , , , , ]    # Pose tolerance for each axis (x, y, z, roll, pitch, yaw).
+    nu_tol: [ , , , , , ]     # Velocity tolerance for each axis (u, v, w, p, q, r).
+    cmd_offset: [ , , , , , ] # Command offset for each axis (x, y, z, roll, pitch, yaw).
+
 ```
 
 Defines the control strategy and the acceptable error thresholds for pose and velocity.

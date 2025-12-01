@@ -64,28 +64,28 @@ class SlidingModeController:
 		return J
 	
 	def update(self, dt, eta_err, nu_err):
-		J = self.compute_J(eta_err)
-		if self.last_J is None:
-			self.last_J = J
-			return
+		# J = self.compute_J(eta_err)
+		# if self.last_J is None:
+		# 	self.last_J = J
+		# 	return
 		
-		A_tilde = self.robot.Minv @ (self.robot.C + self.robot.D)
-		B_tilde = self.robot.Minv @ self.robot.G
-		T_tilde = self.robot.Minv @ self.robot.T
+		# A_tilde = self.robot.Minv @ (self.robot.C + self.robot.D)
+		# B_tilde = self.robot.Minv @ self.robot.G
+		# T_tilde = self.robot.Minv @ self.robot.T
 
-		T_tilde_inv = np.zeros(6)
-		for i, t in enumerate(T_tilde):
-			if t == 0:
-				T_tilde_inv[i] = 10000
-				continue
-			T_tilde_inv[i] = 1 / t
+		# T_tilde_inv = np.zeros(6)
+		# for i, t in enumerate(T_tilde):
+		# 	if t == 0:
+		# 		T_tilde_inv[i] = 10000
+		# 		continue
+		# 	T_tilde_inv[i] = 1 / t
 		
-		J_point = 1 / dt * (J - self.last_J)
-		J_inv = np.linalg.inv(J)
-		u_eq = T_tilde_inv * (A_tilde @ (- nu_err) + B_tilde) - J_inv @ T_tilde_inv * (J_point + self.mu * J) @ (- nu_err)
+		# J_point = 1 / dt * (J - self.last_J)
+		# J_inv = np.linalg.inv(J)
+		# u_eq = T_tilde_inv * (A_tilde @ (- nu_err) + B_tilde) - J_inv @ T_tilde_inv * (J_point + self.mu * J) @ (- nu_err)
 
-		self.s = J @ (- nu_err) + self.lambda_smc * (- eta_err)
-		self.u = u_eq - np.diag(self.k_smc) * J_inv @ T_tilde_inv * np.array([np.tanh(si / self.phi[i]) for i, si in enumerate(self.s)])
-
+		# self.s = J @ (- nu_err) + self.lambda_smc * (- eta_err)
+		# self.u = u_eq - np.diag(self.k_smc) * J_inv @ T_tilde_inv * np.array([np.tanh(si / self.phi[i]) for i, si in enumerate(self.s)])
+		
 		self.cmd = self.u
 	

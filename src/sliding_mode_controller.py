@@ -14,7 +14,7 @@ class SlidingModeController:
 		self.cmd = np.zeros(6)
 
 	def update(self, dt, eta_err, nu_err):
-		self.s = self.lambda_smc * (eta_err) + nu_err
+		self.s = self.lambda_smc * eta_err + nu_err
 		# np.set_printoptions(threshold=np.inf, linewidth=np.inf)
 		# print(self.s)
 		self.u = self.k_smc * np.array([np.tanh(si / self.phi[i]) for i, si in enumerate(self.s)])

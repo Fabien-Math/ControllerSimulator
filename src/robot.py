@@ -19,21 +19,24 @@ class Robot:
 		self.eta_p = np.zeros(6)
 		self.eta_prev = self.eta
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]
-		self.J1 = np.zeros((3,3))
-		self.J2 = np.zeros((3,3))
-		self.J = np.zeros((6,6))
-		self.J_inv = np.zeros((6,6))
-		self.lastJ = np.zeros((6,6))
+		self.J1 = np.zeros((3, 3))
+		self.J2 = np.zeros((3, 3))
+		self.J = np.zeros((6, 6))
+		self.J_inv = np.zeros((6, 6))
+		self.lastJ = np.zeros((6, 6))
+		self.J_p = np.zeros((6, 6))
 
 		# Velocity and angular velocity
 		self.nu = np.array(robot_params["initial_conditions"]["nu"], dtype=np.float64)
 		self.nu_rel = self.nu
 		self.nu1, self.nu2 = self.nu[0:3], self.nu[3:6]
+		self.fluid_vel = np.zeros(6)
 
 		# Acceleration and angular acceleration
 		self.gamma = np.zeros(6)
 		self.forces = np.zeros(6)
 		self.hydro_forces = np.zeros(6)
+		self.coriolis_centripetal_forces = np.zeros(6)
 
 		# MASS PROPERTIES
 		mass_prop = robot_params["mass_properties"]
@@ -47,23 +50,29 @@ class Robot:
 		self.Mrb[3:6, 3:6] =  self.I0					# kg.m2
 		self.Ma = np.array(mass_prop["Ma"])
 		self.M = self.Mrb + self.Ma
-		self.Minv = np.linalg.inv(self.M)
+		self.M_inv = np.linalg.inv(self.M)
+		self.M_eta = np.zeros((6, 6))
+		self.M_eta_inv = None
 
 		# DAMPING MATRICES
 		damp_prop = robot_params["damping"]
 		self.Dl = np.array(damp_prop["Dl"])
 		self.Dq = np.array(damp_prop["Dq"])
+		self.D_eta = np.zeros((6, 6))
 
 		# CORIOLIS MATRICES
 		self.Crb = np.zeros((6, 6))
 		self.Ca = np.zeros((6, 6))
 		self.C = np.zeros((6, 6))
+		self.C_eta = np.zeros((6, 6))
 
 		# VOLUMETRIC FORCES
 		self.G = np.zeros(6)
+		self.G_eta = np.zeros(6)
 
 		# EXTERNAL FORCES
 		self.T = np.zeros(6)
+		self.T_eta = np.zeros(6)
 
 
 		self.thrusters = ThrusterSystem(robot_params["thruster"])
@@ -112,21 +121,21 @@ class Robot:
 
 	def compute_gamma(self, dt):
 		J_invT = self.J_inv.T
-		J_p = (self.J - self.lastJ) / dt
+		self.J_p = (self.J - self.lastJ) / dt
 
-		M_eta = J_invT @ self.M @ self.J_inv
-		M_inv_eta = np.linalg.inv(M_eta)
+		self.M_eta = J_invT @ self.M @ self.J_inv
+		self.M_eta_inv = np.linalg.inv(self.M_eta)
 		
-		C_eta = J_invT @ (self.C - self.M @ self.J_inv @ J_p) @ self.J_inv
-		D_eta = J_invT @ self.D @ self.J_inv
-		G_eta = J_invT @ self.G
-		T_eta = J_invT @ self.T
+		self.C_eta = J_invT @ (self.C - self.M @ self.J_inv @ self.J_p) @ self.J_inv
+		self.D_eta = J_invT @ self.D @ self.J_inv
+		self.G_eta = J_invT @ self.G
+		self.T_eta = J_invT @ self.T
 
-		self.hydro_forces = - np.matmul(D_eta, self.J @ self.nu_rel)
-		self.coriolis_centripetal_forces = - np.matmul(C_eta, self.J @ self.nu_rel)
-		self.forces = self.coriolis_centripetal_forces + self.hydro_forces + T_eta + G_eta
+		self.hydro_forces = - np.matmul(self.D_eta, self.J @ self.nu_rel)
+		self.coriolis_centripetal_forces = - np.matmul(self.C_eta, self.J @ self.nu)
+		self.forces = self.coriolis_centripetal_forces + self.hydro_forces + self.T_eta + self.G_eta
 		# Update acceleration
-		self.gamma = np.matmul(M_inv_eta, self.forces)
+		self.gamma = np.matmul(self.M_eta_inv, self.forces)
 		# np.set_printoptions(threshold=np.inf, linewidth=np.inf)
 		# print(self.forces)
 
@@ -183,8 +192,10 @@ class Robot:
 		self.compute_J()
 
 		# Update relative fluid velocity
-		fluid_vel = env.compute_fluid_vel(self.eta)
-		self.nu_rel = self.nu - fluid_vel
+		env.compute_fluid_vel(self.eta, dt, self.time)
+		self.fluid_vel = env.fluid_vel
+		self.nu_rel = self.nu - self.fluid_vel
+
 		# DAMPING
 		self.compute_D()
 		# CORIOLIS AND CENTRIPETAL

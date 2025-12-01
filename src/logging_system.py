@@ -9,6 +9,7 @@ class LoggingSystem:
 		self.etas_desired = []
 		self.nus = []
 		self.nus_desired = []
+		self.fluid_vels = []
 		self.thrust_forces = []
 		self.forces = []
 		self.thruster_forces = []
@@ -27,6 +28,7 @@ class LoggingSystem:
 		"""Append the current robot state to logs."""
 		self.etas.append(np.array(self.robot.eta))
 		self.nus.append(np.array(self.robot.nu))
+		self.fluid_vels.append(np.array(self.robot.fluid_vel))
 		self.forces.append(np.array(self.robot.forces))
 		self.hydro_forces.append(np.array(self.robot.hydro_forces))
 		self.etas_desired.append(np.array(self.robot.controller.desired_eta))
@@ -50,6 +52,7 @@ class LoggingSystem:
 		"""Clear all logs."""
 		self.etas.clear()
 		self.nus.clear()
+		self.fluid_vels.clear()
 		self.forces.clear()
 		self.hydro_forces.clear()
 		self.thrust_forces.clear()
@@ -64,6 +67,7 @@ class LoggingSystem:
 		self.etas_desired = np.array(self.etas_desired)
 		self.nus = np.array(self.nus)
 		self.nus_desired = np.array(self.nus_desired)
+		self.fluid_vels = np.array(self.fluid_vels)
 		self.thrust_forces = np.array(self.thrust_forces)
 		self.thruster_forces = np.array(self.thruster_forces)
 		self.forces = np.array(self.forces)
@@ -91,6 +95,8 @@ class LoggingSystem:
 				header += [f'eta_{i}' for i in range(len(self.etas[0]))]
 			if len(self.nus) and len(self.nus[0]) > 0:
 				header += [f'nu_{i}' for i in range(len(self.nus[0]))]
+			if len(self.fluid_vels) and len(self.fluid_vels[0]) > 0:
+				header += [f'fluid_vel_{i}' for i in range(len(self.fluid_vels[0]))]
 			if len(self.thrust_forces) and self.thrust_forces[0] is not None:
 				header += [f'thrust_force_{i}' for i in range(len(self.thrust_forces[0]))]
 			if len(self.thruster_forces) and self.thruster_forces[0] is not None:
@@ -115,6 +121,8 @@ class LoggingSystem:
 					row += list(self.etas[i])
 				if self.nus is not None and i < len(self.nus):
 					row += list(self.nus[i])
+				if self.fluid_vels is not None and i < len(self.fluid_vels):
+					row += list(self.fluid_vels[i])
 				if self.thrust_forces is not None and i < len(self.thrust_forces) and self.thrust_forces[i] is not None:
 					row += list(self.thrust_forces[i])
 				else:

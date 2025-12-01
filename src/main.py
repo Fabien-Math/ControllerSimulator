@@ -5,11 +5,11 @@ from graph_system import GraphSystem
 import time, os
 
 def main():
-	# filename = "config/bluerov_config.yaml"
+	filename = "config/bluerov_config.yaml"
 	# filename = "config/bluerov_config_round.yaml"
 	# filename = "config/bluerov_config_point.yaml"
 	# filename = "config/bluerov_config_path.yaml"
-	filename = "config/bluerov_config_lawnmower.yaml"
+	# filename = "config/bluerov_config_lawnmower.yaml"
 	# filename = "config/bluerov_config_spiral.yaml"
 	# filename = "config/nautile_config.yaml"
 	
