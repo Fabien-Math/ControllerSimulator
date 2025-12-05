@@ -11,7 +11,7 @@ from viewer.obj_manager import load_obj_with_tex, create_vertex_data, create_vbo
 import time
 
 RAD2DEG = 180 / 3.1415926535
-DEG2RAD = 180 / 3.1415926535
+DEG2RAD = 3.1415926535 / 180
 class Viewer:
 	def __init__(self, robot, timestep, window_width=1600, window_height=900):
 		self.window_width = window_width
@@ -133,6 +133,9 @@ class Viewer:
 	def draw_hud(self):
 		self.draw_robot_info_hud()
 		self.draw_current_hud()
+		# self.draw_ladders()
+		self.draw_heading_ladder()
+		self.draw_pitch_ladder()
 
 
 	def draw_current_hud(self, radius=60):
@@ -241,7 +244,332 @@ class Viewer:
 		glRasterPos2f(cx - 10, cy - radius - 15)
 
 		for ch in text:
-			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(ch))
+			glutBitmapCharacter(GLUT_BITMAP_8_BY_13, ord(ch))
+
+		# ---- Restore state ----
+		glEnable(GL_DEPTH_TEST)
+		glEnable(GL_LIGHTING)
+
+		glMatrixMode(GL_PROJECTION)
+		glPopMatrix()
+		glMatrixMode(GL_MODELVIEW)
+		glPopMatrix()
+
+
+	# ================================================================
+	#      HEADING CYLINDER  —  rolling numbers on a curved drum
+	# ================================================================
+	def draw_heading_cylinder(self):
+		"""
+		Draw a rolling heading scale curved like a cylinder.
+		heading: degrees [0..360)
+		"""
+
+		glMatrixMode(GL_PROJECTION)
+		glPushMatrix()
+		glLoadIdentity()
+		gluOrtho2D(0,1,0,1)
+
+		glMatrixMode(GL_MODELVIEW)
+		glPushMatrix()
+		glLoadIdentity()
+		glDisable(GL_DEPTH_TEST)
+
+		heading = self.etas[self.frame_index][5] * RAD2DEG
+		self.ratio = self.window_width / self.window_height
+		
+		# Tape parameters
+		tick_step = 5             # tick every 10°
+		label_step = 15            # label every 30°
+
+		glColor3f(0.05, 0.05, 0.05)
+		glLineWidth(2)
+
+		glPushMatrix()
+
+		# CYLINDER PROJECTION PARAMETERS
+		# CYLINDER CENTERED AT (0,0)
+		cx = 0.0          # fixed center X
+		cy = 0.0          # fixed center Y
+		R  = 0.075         # radius of circle / cylinder
+
+		for deg in range(-180 + tick_step, 181, tick_step):
+
+			# Convert tape degree to arc angle around circle
+			theta = (deg - heading + 45) * DEG2RAD
+
+			tick_len  = 0.01
+			label_len = 0.017
+
+			# POSITION ON THE CIRCLE
+			x = cx + R * np.sin(theta)
+			y = cy + R * self.ratio * np.cos(theta)
+			xt = cx + (R + tick_len) * np.sin(theta)
+			yt = cy + (R + tick_len) * self.ratio * np.cos(theta)
+			xl = cx + (R + label_len) * np.sin(theta)
+			yl = cy + (R + label_len) * self.ratio * np.cos(theta)
+
+			# ---- TICK ----
+			glBegin(GL_LINES)
+			glVertex2f(x, y)
+			glVertex2f(xt, yt)
+			glEnd()
+
+			# ---- LABELS ----
+			if deg % label_step == 0:
+				glBegin(GL_LINES)
+				glVertex2f(x, y)
+				glVertex2f(xl, yl)
+				glEnd()
+
+				# label position slightly outside circle
+				lx = cx + (R - 0.015) * np.sin(theta) 
+				ly = cy + (R - 0.015) * np.cos(theta) * self.ratio
+
+				self.draw_text(lx, ly, f"{deg:g}", font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glPopMatrix()
+
+		offset = 0.005
+		# Draw center marker
+		glColor3f(0.3, 0.8, 1.0)
+		glBegin(GL_TRIANGLES)
+		glVertex2f(cx + R - offset, (cy + R - offset) * self.ratio)
+		glVertex2f(cx + R - offset + 0.005, (cy + R - offset + 0.015) * self.ratio)
+		glVertex2f(cx + R - offset + 0.015, (cy + R - offset + 0.005) * self.ratio)
+		glEnd()
+
+		self.draw_text(R + 1.5 * offset, (R + 1.5 * offset) * self.ratio, f"{int(heading):g}°", font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glLineWidth(1)
+
+		# ---- Restore state ----
+		glEnable(GL_DEPTH_TEST)
+		glEnable(GL_LIGHTING)
+
+		glMatrixMode(GL_PROJECTION)
+		glPopMatrix()
+		glMatrixMode(GL_MODELVIEW)
+		glPopMatrix()
+
+
+
+	# ================================================================
+	#      HEADING CYLINDER  —  rolling numbers on a curved drum
+	# ================================================================
+	def draw_heading_ladder(self):
+		"""
+		Draw a rolling heading scale curved like a cylinder.
+		heading: degrees [0..360)
+		"""
+		
+		if np.isnan(self.etas[self.frame_index][5]):
+			return
+		
+		glMatrixMode(GL_PROJECTION)
+		glPushMatrix()
+		glLoadIdentity()
+		gluOrtho2D(0,1,0,1)
+
+		glMatrixMode(GL_MODELVIEW)
+		glPushMatrix()
+		glLoadIdentity()
+		glDisable(GL_DEPTH_TEST)
+
+
+		heading = self.etas[self.frame_index][5] * RAD2DEG % 360
+		heading = heading * (abs(heading) <= 180) + (heading - 360) * (heading > 180) + (heading + 360) * (heading < -180)
+		self.ratio = self.window_width / self.window_height
+
+		
+		# Tape parameters
+		tick_step = 5             # tick every 10°
+		label_step = 15            # label every 30°
+
+		glColor3f(0.05, 0.05, 0.05)
+		glLineWidth(2)
+
+		glPushMatrix()
+
+		# CYLINDER PROJECTION PARAMETERS
+		# CYLINDER CENTERED AT (0,0)
+		cx = 0.16          # fixed center X
+		cy = 0.025          # fixed center Y
+		cyl = 0.01
+		width = 0.3
+		angle_span = 120
+
+		for deg in range(int(-180 + tick_step - angle_span / 2), int(181 + angle_span / 2), tick_step):
+			
+			r = (deg - heading) / 180
+			if abs(r) > angle_span / 2 / 180:
+				continue
+			
+			r *= width
+
+			tick_len  = 0.01
+			label_len = 0.017
+
+			# POSITION ON THE CIRCLE
+			x = cx + r
+			y = cy 
+			xt = cx + r
+			yt = cy + tick_len
+			xl = cx + r
+			yl = cy + label_len
+
+			# ---- TICK ----
+			glBegin(GL_LINES)
+			glVertex2f(x, y)
+			glVertex2f(xt, yt)
+			glEnd()
+
+			# ---- LABELS ----
+			if deg % label_step == 0:
+				glBegin(GL_LINES)
+				glVertex2f(x, y)
+				glVertex2f(xl, yl)
+				glEnd()
+
+				# label position slightly outside circle
+				lx = cx + r
+				ly = cyl
+				deg_label = f"{deg * (abs(deg) <= 180) + (deg - 360) * (deg > 180) + (deg + 360) * (deg < -180):g}"
+				label_size = 8 / self.window_width * len(deg_label)
+				self.draw_text(lx - label_size / 2, ly, deg_label, font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glPopMatrix()
+
+		offset = 0.005
+		# Draw center marker
+		glColor3f(0.3, 0.8, 1.0)
+		glBegin(GL_TRIANGLES)
+		glVertex2f(cx, cy + 0.02)
+		glVertex2f(cx - 0.005, cy + 0.02 + 0.015)
+		glVertex2f(cx + 0.005, cy + 0.02 + 0.015)
+		glEnd()
+		heading_label = f"{int(heading):g}°"
+		label_size = 8 / self.window_width * (len(heading_label) - 1)
+		self.draw_text(cx - label_size / 2, cy + 0.02 + 0.02, heading_label, font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glLineWidth(1)
+
+		# ---- Restore state ----
+		glEnable(GL_DEPTH_TEST)
+		glEnable(GL_LIGHTING)
+
+		glMatrixMode(GL_PROJECTION)
+		glPopMatrix()
+		glMatrixMode(GL_MODELVIEW)
+		glPopMatrix()
+
+
+
+
+	# ================================================================
+	#      HEADING CYLINDER  —  rolling numbers on a curved drum
+	# ================================================================
+	def draw_pitch_ladder(self):
+		"""
+		Draw a rolling heading scale curved like a cylinder.
+		heading: degrees [0..360)
+		"""
+		if np.isnan(self.etas[self.frame_index][4]):
+			return
+
+		glMatrixMode(GL_PROJECTION)
+		glPushMatrix()
+		glLoadIdentity()
+		gluOrtho2D(0,1,0,1)
+
+		glMatrixMode(GL_MODELVIEW)
+		glPushMatrix()
+		glLoadIdentity()
+		glDisable(GL_DEPTH_TEST)
+
+
+		pitch = self.etas[self.frame_index][4] * RAD2DEG
+		pitch = pitch * (abs(pitch) <= 90) + (pitch - 180) * (pitch > 90) + (pitch + 180) * (pitch < -90)
+
+		self.ratio = self.window_width / self.window_height
+		
+		# Tape parameters
+		tick_step = 5             # tick every 10°
+		label_step = 15            # label every 30°
+
+		glColor3f(0.05, 0.05, 0.05)
+		glLineWidth(2)
+
+		glPushMatrix()
+
+		# CYLINDER PROJECTION PARAMETERS
+		# CYLINDER CENTERED AT (0,0)
+		cx = 0.025          # fixed center X
+		cy = 0.20        # fixed center Y
+		cxl = 0.01
+		height = 0.3
+		angle_span = 90
+		tick_len  = 0.01 / self.ratio
+		label_len = 0.017 / self.ratio
+
+		for deg in range(int(-90 + tick_step - angle_span / 2), int(90 + angle_span / 2), tick_step):
+			
+			r = (deg - pitch) / 180
+			if abs(r) > angle_span / 2 / 180:
+				continue
+			
+			r *= height
+
+
+			# POSITION ON THE CIRCLE
+			x = cx 
+			y = cy + r * self.ratio
+			xt = cx + tick_len
+			yt = cy + r * self.ratio
+			xl = cx + label_len
+			yl = cy + r * self.ratio
+
+			# ---- TICK ----
+			glBegin(GL_LINES)
+			glVertex2f(x, y)
+			glVertex2f(xt, yt)
+			glEnd()
+
+			# ---- LABELS ----
+			if deg % label_step == 0:
+				glBegin(GL_LINES)
+				glVertex2f(x, y)
+				glVertex2f(xl, yl)
+				glEnd()
+
+				# label position slightly outside circle
+				lx = cxl
+				ly = cy + r * self.ratio
+				deg_label = f"{deg * (abs(deg) <= 90) + (deg - 180) * (deg > 90) + (deg + 180) * (deg < -90):g}"
+				label_size = 8 / self.window_width * len(deg_label)
+				self.draw_text(lx, ly - label_size / 2, deg_label, font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glPopMatrix()
+
+		offset = 0.005
+		# Draw center marker
+		glColor3f(0.3, 0.8, 1.0)
+		glBegin(GL_TRIANGLES)
+		glVertex2f(cx + 0.015, cy)
+		glVertex2f(cx + 0.015 + 0.01, cy - 0.005 * self.ratio)
+		glVertex2f(cx + 0.015 + 0.01, cy + 0.005 * self.ratio)
+		glEnd()
+		pitch_label = f"{int(pitch):g}°"
+		label_size = 8 / self.window_width * (len(pitch_label) - 1)
+		self.draw_text(cx + 0.015 + 0.015, cy - label_size / 2, pitch_label, font=GLUT_BITMAP_8_BY_13, color=(0.05, 0.05, 0.05))
+
+
+		glLineWidth(1)
 
 		# ---- Restore state ----
 		glEnable(GL_DEPTH_TEST)
@@ -258,7 +586,6 @@ class Viewer:
 		glRasterPos2f(x, y)
 		for ch in text:
 			glutBitmapCharacter(font, ord(ch))
-
 
 	def draw_robot_info_hud(self, line_height=20, panel_width=300, panel_padding=15, border_thickness=2):
 		"""

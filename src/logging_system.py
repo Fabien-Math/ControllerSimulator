@@ -5,143 +5,296 @@ class LoggingSystem:
 	def __init__(self, robot):
 		self.launch_time = None 
 		self.robot = robot
+
+		# Time
+		self.timestamps = []
+
+		# State
 		self.etas = []
-		self.etas_desired = []
 		self.nus = []
+
+		# Desired state
+		self.desired_etas = np.array(robot.controller.desired_etas)
+		self.timestamps = []
+
+		self.etas_desired = []
 		self.nus_desired = []
+
+		# Fluid velocity
 		self.fluid_vels = []
+
+		# Forces
 		self.thrust_forces = []
-		self.forces = []
 		self.thruster_forces = []
 		self.hydro_forces = []
+		self.forces = []
+
+		# Command
 		self.commands = []
+
+		# Errors
 		self.etas_err = []
 		self.etas_err_world = []
 		self.nus_err = []
-		self.desired_etas = np.array(robot.controller.desired_etas)
-		self.timestamps = []
 
 		self.errs = False
 		self.thrust_force = False
 
 	def log_state(self, timestamp):
 		"""Append the current robot state to logs."""
+		# Time
+		self.timestamps.append(timestamp)
+
+		# State
 		self.etas.append(np.array(self.robot.eta))
 		self.nus.append(np.array(self.robot.nu))
-		self.fluid_vels.append(np.array(self.robot.fluid_vel))
-		self.forces.append(np.array(self.robot.forces))
-		self.hydro_forces.append(np.array(self.robot.hydro_forces))
+
+		# Desired state
 		self.etas_desired.append(np.array(self.robot.controller.desired_eta))
 		self.nus_desired.append(np.zeros(6))
-		
+
+		# Forces
 		if self.thrust_force is not None:
 			self.thrust_forces.append(np.array(self.robot.thrusters.force))
 			self.thruster_forces.append(np.array(self.robot.thrusters.thrust))
+		self.hydro_forces.append(np.array(self.robot.hydro_forces))
+		self.forces.append(np.array(self.robot.forces))
+
+		# Fluid velocity
+		self.fluid_vels.append(np.array(self.robot.fluid_vel))
 	
+		# Command
 		if self.robot.controller is not None:
 			self.commands.append(self.robot.controller.controller.cmd)
 		
+		# Errors
 		if self.errs is not None:
 			self.etas_err.append(np.array(self.robot.controller.etas_err))
 			self.etas_err_world.append(np.array(self.robot.controller.etas_err_world))
 			self.nus_err.append(np.array(self.robot.controller.nus_err))
 		
-		self.timestamps.append(timestamp)
 
 	def clear_logs(self):
 		"""Clear all logs."""
-		self.etas.clear()
-		self.nus.clear()
-		self.fluid_vels.clear()
-		self.forces.clear()
-		self.hydro_forces.clear()
-		self.thrust_forces.clear()
-		self.thruster_forces.clear()
-		self.commands.clear()
-		self.etas_err.clear()
-		self.nus_err.clear()
+		# Time
 		self.timestamps.clear()
 
+		# State
+		self.etas.clear()
+		self.nus.clear()
+
+		# Desired state
+		self.etas_desired.clear()
+		self.nus_desired.clear()
+
+		# Fluid velocity
+		self.fluid_vels.clear()
+
+		# Forces
+		self.thrust_forces.clear()
+		self.thruster_forces.clear()
+		self.hydro_forces.clear()
+		self.forces.clear()
+
+		# Command
+		self.commands.clear()
+
+		# Errors
+		self.etas_err.clear()
+		self.etas_err_world.clear()
+		self.nus_err.clear()
+
 	def np_format(self):
-		self.etas = np.array(self.etas)
-		self.etas_desired = np.array(self.etas_desired)
-		self.nus = np.array(self.nus)
-		self.nus_desired = np.array(self.nus_desired)
-		self.fluid_vels = np.array(self.fluid_vels)
-		self.thrust_forces = np.array(self.thrust_forces)
-		self.thruster_forces = np.array(self.thruster_forces)
-		self.forces = np.array(self.forces)
-		self.hydro_forces = np.array(self.hydro_forces)
-		self.commands = np.array(self.commands)
-		self.etas_err = np.array(self.etas_err)
-		self.nus_err = np.array(self.nus_err)
+		# Time
 		self.timestamps = np.array(self.timestamps)
 		
+		# State
+		self.etas = np.array(self.etas)
+		self.nus = np.array(self.nus)
+
+		# Desired state
+		self.etas_desired = np.array(self.etas_desired)
+		self.nus_desired = np.array(self.nus_desired)
+
+		# Fluid velocity
+		self.fluid_vels = np.array(self.fluid_vels)
+
+		# Forces
+		self.thrust_forces = np.array(self.thrust_forces)
+		self.thruster_forces = np.array(self.thruster_forces)
+		self.hydro_forces = np.array(self.hydro_forces)
+		self.forces = np.array(self.forces)
+		
+		# Command
+		self.commands = np.array(self.commands)
+		
+		# Errors
+		self.etas_err = np.array(self.etas_err)
+		self.etas_err_world = np.array(self.etas_err_world)
+		self.nus_err = np.array(self.nus_err)
+		
 			
-	def save_to_csv(self, folder):
+	def save_to_csv(self, folder, number_format="{:.6e}"):
+		"""
+		Save all numerical data to CSV using a consistent number format.
+		number_format: Python string format, e.g. "{:.3f}", "{:.2e}", etc.
+		"""
 		import csv
-		
-		# Construct filename
-		filename = f"output.csv"
+		import os
+
+		# Helper: formats numbers or returns non-numbers unchanged
+		def fmt(x):
+			if isinstance(x, (int, float)):
+				return number_format.format(x)
+			return x
+
+		filename = "output.csv"
 		filepath = os.path.join(folder, filename)
-		
+
 		with open(filepath, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile)
-			
-			# Create header with dynamic sizes based on first entries
+
+			# ----- Build header -----
 			header = ['timestamp']
-			
-			if len(self.etas) and len(self.etas[0]) > 0:
-				header += [f'eta_{i}' for i in range(len(self.etas[0]))]
-			if len(self.nus) and len(self.nus[0]) > 0:
-				header += [f'nu_{i}' for i in range(len(self.nus[0]))]
-			if len(self.fluid_vels) and len(self.fluid_vels[0]) > 0:
-				header += [f'fluid_vel_{i}' for i in range(len(self.fluid_vels[0]))]
-			if len(self.thrust_forces) and self.thrust_forces[0] is not None:
-				header += [f'thrust_force_{i}' for i in range(len(self.thrust_forces[0]))]
-			if len(self.thruster_forces) and self.thruster_forces[0] is not None:
-				header += [f'thruster_force_{i}' for i in range(len(self.thruster_forces[0]))]
-			if len(self.forces) and len(self.forces[0]) > 0:
-				header += [f'force_{i}' for i in range(len(self.forces[0]))]
-			if len(self.commands) and self.commands[0] is not None:
-				header += [f'commands_{i}' for i in range(len(self.commands[0]))]
-			if len(self.etas_err) and len(self.etas_err[0]) > 0:
-				header += [f'etas_err_{i}' for i in range(len(self.etas_err[0]))]
-			if len(self.etas_err_world) and len(self.etas_err_world[0]) > 0:
-				header += [f'etas_err_world{i}' for i in range(len(self.etas_err_world[0]))]
-			if len(self.nus_err) and len(self.nus_err[0]) > 0:
-				header += [f'nus_err_{i}' for i in range(len(self.nus_err[0]))]
+
+			# Utility to extend header lists
+			def add_header(prefix, data):
+				if len(data) and len(data[0]) > 0:
+					header.extend([f"{prefix}{i}" for i in range(len(data[0]))])
+
+			add_header("eta_", self.etas)
+			add_header("nu_", self.nus)
+			add_header("eta_desired_", self.etas_desired)
+			add_header("nu_desired_", self.nus_desired)
+			add_header("fluid_vel_", self.fluid_vels)
+
+			add_header("thrust_force_", self.thrust_forces)
+			add_header("thruster_force_", self.thruster_forces)
+			add_header("hydro_force_", self.hydro_forces)
+			add_header("force_", self.forces)
+
+			add_header("command_", self.commands)
+			add_header("etas_err_", self.etas_err)
+			add_header("etas_err_world_", self.etas_err_world)
+			add_header("nus_err_", self.nus_err)
 
 			writer.writerow(header)
 
+			# ----- Write rows -----
 			for i in range(len(self.timestamps)):
-				row = [self.timestamps[i]]
-				
-				if self.etas is not None and i < len(self.etas):
-					row += list(self.etas[i])
-				if self.nus is not None and i < len(self.nus):
-					row += list(self.nus[i])
-				if self.fluid_vels is not None and i < len(self.fluid_vels):
-					row += list(self.fluid_vels[i])
-				if self.thrust_forces is not None and i < len(self.thrust_forces) and self.thrust_forces[i] is not None:
-					row += list(self.thrust_forces[i])
-				else:
-					row += []
-				if self.thruster_forces is not None and i < len(self.thruster_forces) and self.thruster_forces[i] is not None:
-					row += list(self.thruster_forces[i])
-				else:
-					row += []
-				if self.forces is not None and i < len(self.forces):
-					row += list(self.forces[i])
-				if self.commands is not None and i < len(self.commands):
-					row += list(self.commands[i])
-				if self.etas_err is not None and i < len(self.etas_err):
-					row += list(self.etas_err[i])
-				if self.etas_err_world is not None and i < len(self.etas_err_world):
-					row += list(self.etas_err_world[i])
-				if self.nus_err is not None and i < len(self.nus_err):
-					row += list(self.nus_err[i])
+				row = [fmt(self.timestamps[i])]
+
+				def add_row(data):
+					if data is not None and i < len(data) and data[i] is not None:
+						return [fmt(x) for x in data[i]]
+					return []
+
+				row += add_row(self.etas)
+				row += add_row(self.nus)
+				row += add_row(self.etas_desired)
+				row += add_row(self.nus_desired)
+				row += add_row(self.fluid_vels)
+
+				row += add_row(self.thrust_forces)
+				row += add_row(self.thruster_forces)
+				row += add_row(self.hydro_forces)
+				row += add_row(self.forces)
+
+				row += add_row(self.commands)
+				row += add_row(self.etas_err)
+				row += add_row(self.etas_err_world)
+				row += add_row(self.nus_err)
 
 				writer.writerow(row)
-    
+
 		print("Simulation saved!")
+
+
+	def load_from_csv(self, filepath):
+		"""
+		Load logged CSV data and reconstruct all variables
+		that exist in the file. Variables not present remain unchanged.
+		"""
+
+		import csv
+
+		# ========== Read CSV into a dict of columns ==========
+		with open(filepath, 'r', newline='') as csvfile:
+			reader = csv.reader(csvfile)
+			header = next(reader)
+
+			columns = {name: [] for name in header}
+
+			for row in reader:
+				for name, value in zip(header, row):
+					try:
+						value = float(value)
+					except ValueError:
+						pass
+					columns[name].append(value)
+
+		# ========== Helper: extract vector groups ==========
+		import re
+		def extract_group(prefix):
+			"""
+			Returns a list-of-lists for all columns matching prefix + index.
+			Only accepts keys like prefix + digits (e.g. 'eta_0').
+			"""
+			numeric_keys = []
+			for k in columns:
+				if k.startswith(prefix):
+					suffix = k[len(prefix):]
+					if suffix.isdigit():  # <-- strict check
+						numeric_keys.append(k)
+
+			# Nothing found
+			if not numeric_keys:
+				return None
+
+			# Sort by numeric index
+			numeric_keys = sorted(numeric_keys, key=lambda k: int(k[len(prefix):]))
+
+			# Build rows
+			rows = len(columns[numeric_keys[0]])
+			group = []
+
+			for i in range(rows):
+				group.append([columns[k][i] for k in numeric_keys])
+
+			return group
+
+
+		# ========== Recover variables if present ==========
+
+		# Timestamp (scalar column)
+		if "timestamp" in columns:
+			self.timestamps = columns["timestamp"]
+
+		# State
+		self.etas = extract_group("eta_") or self.etas
+		self.nus = extract_group("nu_") or self.nus
+
+		# Desired state
+		self.etas_desired = extract_group("eta_desired_") or self.etas_desired
+		self.nus_desired = extract_group("nu_desired_") or self.nus_desired
+
+		# Fluid velocity
+		self.fluid_vels = extract_group("fluid_vel_") or self.fluid_vels
+
+		# Forces
+		self.thrust_forces = extract_group("thrust_force_") or self.thrust_forces
+		self.thruster_forces = extract_group("thruster_force_") or self.thruster_forces
+		self.hydro_forces = extract_group("hydro_force_") or self.hydro_forces
+		self.forces = extract_group("force_") or self.forces
+
+		# Commands
+		self.commands = extract_group("command_") or self.commands
+
+		# Errors
+		self.etas_err = extract_group("etas_err_") or self.etas_err
+		self.etas_err_world = extract_group("etas_err_world_") or self.etas_err_world
+		self.nus_err = extract_group("nus_err_") or self.nus_err
+
+		self.np_format()
+
+		print("Simulation log loaded!")

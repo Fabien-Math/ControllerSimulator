@@ -3,6 +3,10 @@ from simulation_manager import SimulationManager
 from graphical_simulation_manager import GraphicalSimulationManager
 from graph_system import GraphSystem
 import time, os
+from numpy import set_printoptions, inf
+
+set_printoptions(threshold=inf, linewidth=inf, formatter={'float': lambda x: "{0:.3e}".format(x)})
+
 
 def main():
 	filename = "config/bluerov_config.yaml"
@@ -33,6 +37,9 @@ def main():
 		folder = simulation_params['save_output'] + '/' + simulation_params['name'] + '_' + launch_time + '/'
   		# Create output directory if needed
 		os.makedirs(folder, exist_ok=True)
+		with open(filename, "r") as fsrc:
+			with open(folder + 'config.yaml', "w") as fdst:
+				fdst.write(fsrc.read())
 	
 	if simulation_params['save_csv']:
 		sim_manager.robot.logger.save_to_csv(folder)
