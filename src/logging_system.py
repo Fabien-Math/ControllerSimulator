@@ -14,7 +14,9 @@ class LoggingSystem:
 		self.nus = []
 
 		# Desired state
-		self.desired_etas = np.array(robot.controller.desired_etas)
+		self.desired_etas = []
+		if self.robot.controller is not None:
+			self.desired_etas = np.array(robot.controller.desired_etas)
 		self.timestamps = []
 
 		self.etas_desired = []
@@ -50,11 +52,12 @@ class LoggingSystem:
 		self.nus.append(np.array(self.robot.nu))
 
 		# Desired state
-		self.etas_desired.append(np.array(self.robot.controller.desired_eta))
+		if self.robot.controller is not None:
+			self.etas_desired.append(np.array(self.robot.controller.desired_eta))
 		self.nus_desired.append(np.zeros(6))
 
 		# Forces
-		if self.thrust_force is not None:
+		if self.robot.thrusters is not None:
 			self.thrust_forces.append(np.array(self.robot.thrusters.force))
 			self.thruster_forces.append(np.array(self.robot.thrusters.thrust))
 		self.hydro_forces.append(np.array(self.robot.hydro_forces))
@@ -67,8 +70,7 @@ class LoggingSystem:
 		if self.robot.controller is not None:
 			self.commands.append(self.robot.controller.controller.cmd)
 		
-		# Errors
-		if self.errs is not None:
+			# Errors
 			self.etas_err.append(np.array(self.robot.controller.etas_err))
 			self.etas_err_world.append(np.array(self.robot.controller.etas_err_world))
 			self.nus_err.append(np.array(self.robot.controller.nus_err))

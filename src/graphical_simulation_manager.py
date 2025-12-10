@@ -33,6 +33,8 @@ class GraphicalSimulationManager:
 
 		if failed:
 			sys.stderr.write("Mission FAILED!\nRobot fucked up!\n")
+			if i <= 1:
+				exit()
 
 		if self.robot.controller.mission_finished:
 			print(f"Mission accomplished!\nTotal simulation time: {i*self.dt:.3f} s")

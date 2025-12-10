@@ -4,6 +4,7 @@ from scipy.spatial.transform import Rotation as R
 from controller_manager import ControllerManager
 from thruster_system import ThrusterSystem
 from logging_system import LoggingSystem
+from mission_system import MissionSystem
 
 
 def S(v):
@@ -13,7 +14,7 @@ def S(v):
 
 
 class Robot:
-	def __init__(self, robot_params):
+	def __init__(self, robot_params):		
 		# Position and orientation
 		self.eta = np.array(robot_params["initial_conditions"]["eta"], dtype=np.float64)
 		self.eta_p = np.zeros(6)
@@ -74,10 +75,9 @@ class Robot:
 		self.T = np.zeros(6)
 		self.T_eta = np.zeros(6)
 
-
+		self.mission: MissionSystem = robot_params['mission']
 		self.thrusters = ThrusterSystem(robot_params["thruster"])
 		self.controller = ControllerManager(self, robot_params["controller"], self.thrusters)
-		self.controller.desired_etas = list(robot_params['mission'])
 
 		self.time = 0
 		self.log = True
@@ -217,6 +217,7 @@ class Robot:
 			self.logger.log_state(self.time)
 	
 	def compute_nu(self, dt):
+		# Finite difference for speed calculation
 		self.eta_p = (self.eta - self.eta_prev) / dt
 		# self.eta_p += self.gamma * dt
 
@@ -231,4 +232,5 @@ class Robot:
 		new_eta = 2*self.eta - self.eta_prev + dt**2 * self.gamma
 		self.eta_prev = self.eta
 		self.eta = new_eta
+
 		self.eta1, self.eta2 = self.eta[0:3], self.eta[3:6]

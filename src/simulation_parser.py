@@ -1,6 +1,7 @@
 import yaml
 import numpy as np
-from trajectory_system import TrajectorySystem
+import re
+from mission_system import MissionSystem
 
 def load_config(filename):
 	"""
@@ -69,17 +70,29 @@ def load_config(filename):
 			'kd': pid_params.get('kd'),
 		})
 	if ctrl_type == 'FDB':
-		pid_params = controller_cfg.get('feedback_params', {})
+		feedback_params = controller_cfg.get('feedback_params', {})
 		controller_params.update({
-			'k': pid_params.get('k'),
+			'kp': feedback_params.get('kp'),
+			'kd': feedback_params.get('kd'),
+			'noises': feedback_params.get('noises'),
 		})
-	if ctrl_type != 'PID' and ctrl_type != 'SMC' and ctrl_type != 'FDB':
+	if ctrl_type == 'MPC':
+		mpc_params = controller_cfg.get('mpc_params', {})
+		controller_params.update({
+			'k': mpc_params.get('k'),
+		})
+	if ctrl_type == 'PPC':
+		pole_params = controller_cfg.get('pole_placement_params', {})
+		controller_params.update({
+			'p': pole_params.get('p'),
+		})
+	if ctrl_type != 'PID' and ctrl_type != 'SMC' and ctrl_type != 'FDB' and ctrl_type != 'PPC' and ctrl_type != 'MPC':
 		raise ValueError(f"Unsupported controller type: {ctrl_type}")
 	
-	mission = TrajectorySystem(robot_cfg)
+	mission = MissionSystem(robot_cfg)
 	robot_params = {
 		'name': robot_cfg.get('name', 'unknown'),
-		'mission': mission.trajectory,  # shape (N, 6)
+		'mission': mission,  # shape (N, 6)
 		'initial_conditions': {
 			'eta': np.array(robot_cfg.get('initial_conditions', {}).get('eta')),
 			'nu': np.array(robot_cfg.get('initial_conditions', {}).get('nu'))
@@ -102,25 +115,36 @@ def load_config(filename):
 	# Environment parameters
 	env_cfg = cfg.get('environment', {})
 	current_cfg = env_cfg.get('current', {})
-	current_type = current_cfg.get('type', 'normal')
-	current_params = {'type': current_type}
+	current_types = re.sub(r"\s+", "", current_cfg.get('types', 'zero'))
+	current_params = {'types': current_types}
 	
-	if current_type == 'normal':
-		current_params['speed'] = np.array(current_cfg.get('normal', {}).get('speed'))
-		current_params['std'] = np.array(current_cfg.get('normal', {}).get('std'))
-	elif current_type == 'jet':
-		current_params['vector'] = np.array(current_cfg.get('jet', {}).get('vector'))
-	elif current_type == 'constant':
-		current_params['vector'] = np.array(current_cfg.get('constant', {}).get('vector'))
-	elif current_type == 'time_series':
-		current_params['time_series'] = [np.array(vec) for vec in current_cfg.get('time_series')]
-	elif current_type == 'depth_profile':
-		current_params['depth_profile'] = [
-			{'depth': entry.get('depth', 0), 'vector': np.array(entry.get('vector'))}
-			for entry in current_cfg.get('depth_profile')
-		]
-	else:
-		raise ValueError(f"Unsupported current type: {current_type}")
+	for current_type in current_types.split(','):
+		if current_type == 'normal':
+			current_params['normal'] = {}
+			current_params['normal']['speed'] = np.array(current_cfg.get('normal', {}).get('speed'))
+			current_params['normal']['std'] = np.array(current_cfg.get('normal', {}).get('std'))
+		elif current_type == 'jet':
+			current_params['jet'] = {}
+			current_params['jet']['vector'] = np.array(current_cfg.get('jet', {}).get('vector'))
+			current_params['jet']['period'] = current_cfg.get('jet', {}).get('period')
+			current_params['jet']['duty'] = current_cfg.get('jet', {}).get('duty')
+		elif current_type == 'constant':
+			current_params['constant'] = {}
+			current_params['constant']['vector'] = np.array(current_cfg.get('constant', {}).get('vector'))
+		elif current_type == 'time_series':
+			current_params['time_series'] = [
+				{'time': entry.get('time', 0), 'vector': np.array(entry.get('vector'))}
+				for entry in current_cfg.get('time_series')
+			]
+		elif current_type == 'depth_profile':
+			current_params['depth_profile'] = [
+				{'depth': entry.get('depth', 0), 'vector': np.array(entry.get('vector'))}
+				for entry in current_cfg.get('depth_profile')
+			]
+		elif current_type == 'zero':
+			pass
+		else:
+			raise ValueError(f"Unsupported current type: {current_type}")
 	
 	properties_cfg = env_cfg.get('properties', {})
 	environment_params = {

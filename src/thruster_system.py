@@ -64,6 +64,7 @@ class ThrusterSystem:
 		self.rpm += accel * dt
 		self.thrust += self.rpm * dt
 
-		# Clip again to be sure the physical force doesn't exceed limits
-		self.force = self.T @ np.clip(self.thrust, self.thrust_limits[:, 0], self.thrust_limits[:, 1]) 
+		self.thrust = np.clip(self.thrust, self.thrust_limits[:, 0], self.thrust_limits[:, 1])
 
+		# Clip again to be sure the physical force doesn't exceed limits
+		self.force = self.T @ self.thrust
