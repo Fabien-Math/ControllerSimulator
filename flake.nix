@@ -26,6 +26,7 @@
 
           pkgs.python313
           pkgs.python313Packages.scipy
+          pkgs.python313Packages.osqp
           pkgs.python313Packages.numpy
 	        pkgs.python313Packages.seaborn
           pkgs.python313Packages.matplotlib
