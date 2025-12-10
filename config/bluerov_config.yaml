@@ -1,7 +1,7 @@
 simulation:
-  name: "waypoints"
-  timestep: 0.03
-  end_time: 50.0
+  name: "follow_line_traj"
+  timestep: 0.03  # max 0.05s before simulation crashes
+  end_time: 40.0
   graphical: true
   save_csv: false
   save_output: results/
@@ -13,28 +13,33 @@ robot:
   name: bluerov2
 
   mission:
-    type: waypoints
+    type: trajectory
     params:
-      - [0, 0, 10, 0, 0, 0]
-      - [5, 0, 10, 0, 0, 0]
-      - [5, 5, 10, 0, 0, 0]
-      - [0, 5, 10, 0, 0, 0]
-      - [0, 0, 10, 0, 0, 0]
-      # - [0, 10, 0, 0, 0, 0]
-      # - [0, 10, 0, 0, 0, 3.14]
-      # - [0, 0, 0, 0, 0, 3.14]
-      # - [0, 0, 0, 0, 0, 0]
-      # - [10, 0, 0, 0, 0, 0]
-      # - [10, 10, 0, 0, 0, 0]
-      # - [10, 10, 10, 0, 0, 0]
-      # - [10, 10, 10, 0, 0, 0]
-      # - [10, 10, 0, 0, 0, 0]
-      # - [10, 0, 0, 0, 0, 0]
-      # - [0, 0, 0, 0, 0, 0]
-      # # - [15, 0, 0, 0, 0, -3.14]
-      # - [0, 15, 0, 0, 0, -1.57]
-      # - [0, 0, 15, 0, 0, 0]
-      # - [0, 0, 0, 0, 0, 0]
+      # waypoints:
+      #   - [0, 0, 10, 0, 0, 0]
+      #   - [10, 0, 10, 0, 0, 0]
+      #   - [20, 5, 10, 0, 0, 0]
+      #   - [30, -5, 10, 0, 0, 0]
+      #   - [40, 5, 10, 0, 0, 0]
+      # times:
+      #   - 0
+      #   - 15
+      #   - 30
+      #   - 45
+      #   - 60
+      waypoints:
+        - [0, 0, 10, 0, 0, 0]
+        - [5, 0, 15, 0, 0, 0]
+        - [5, 5, 20, 0, 0, 0]
+        - [0, 5, 10, 0, 0, 0]
+        - [0, 0, 10, 0, 0, 0]
+      times:
+        - 0
+        - 10
+        - 20
+        - 30
+        - 40
+
 
   initial_conditions:
     eta: [0, 0, 10, 0, 0, 0]
@@ -142,6 +147,7 @@ robot:
     type: FDB
     # type: SMC
     # type: PID
+    # type: MPC
 
     eta_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
     nu_tol: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
@@ -152,7 +158,12 @@ robot:
       phi: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
       lambda_smc: [1.0, 1.0, 2.5, 2.0, 2.0, 2.0]
     feedback_params:
-      k: [0.4, 0.4, 0.2, 0.7, 0.7, 0.6]
+      kp: [0.4, 0.4, 0.2, 0.7, 0.7, 0.6]
+      kd: [2.0, 2.0, 2.0, 1.0, 1.0, 1.0]
+      noises: { D: 0.0, C: 0.0, G: 0.0, M: 0.0 }
+      # noises: { D: 0.1, C: 0.1, G: 0.05, M: 0.2 }
+    mpc_params:
+      k: [40.0, 40.0, 40.0, 1.0, 1.0, 40.0]
     pid_params:
       kp: [3.0, 3.0, 3.0, 4.0, 4.0, 2.0]
       ki: [0.2, 0.2, 0.2, 0.3, 0.3, 0.1]
@@ -168,35 +179,37 @@ environment:
     water_viscosity: 1.0e-3      # Viscosity of water in Pa.s
 
   current:
-    type: normal  # Options: normal, jet, constant, time_series, depth_profile
+    types: depth_profile  # Options: zero, normal, jet, constant, time_series, depth_profile
 
     # Type: normal (randomized per axis)
     normal:
-      speed: [0.3, -0.3, 0.0]
-      std: [0.10, 0.05, 0.00]
+      speed: [0.3, -0.3, 0.0, 0.0, 0.0, 0.0]
+      std: [0.10, 0.05, 0.00, 0.0, 0.0, 0.0]
 
     # Type: jet (fully fixed 6D vector)
     jet:
-      vector: [0.2, 0.0, 0.0, 0, 0, 0]
+      vector: [0.3, 0.0, 0.0, 0.0, 0.0, 0.0]
       period: 10
       duty: 0.1
 
     # Type: constant (3D only, angular assumed zero)
     constant:
       vector: [0.0, 0.0, 0.0]
-      # vector: [0.1, 0.1, 0.0]
 
     # Type: time_series (indexed array of 6D vectors)
     time_series:
-      - [0.1, 0.0, 0.0, 0, 0, 0]
-      - [0.15, 0.05, 0.0, 0, 0, 0]
-      - [0.2, 0.0, 0.0, 0, 0, 0]
+      - time: 0
+        vector: [0.1, 0.0, 0.0, 0.0, 0.0, 0.0]
+      - time: 20
+        vector: [0.15, 0.05, 0.0, 0.0, 0.0, 0.0]
+      - time: 100
+        vector: [0.2, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     # Type: depth_profile (velocity as a function of depth)
     depth_profile:
       - depth: 0
-        vector: [0.3, 0.0, 0.0]
+        vector: [0.8, 0.0, 0.0, 0.0, 0.0, 0.0]
       - depth: 10
-        vector: [0.1, 0.0, 0.0]
+        vector: [0.4, 0.0, 0.0, 0.0, 0.0, 0.0]
       - depth: 20
-        vector: [0.0, 0.0, 0.0]
+        vector: [0.1, 0.0, 0.0, 0.0, 0.0, 0.0]
