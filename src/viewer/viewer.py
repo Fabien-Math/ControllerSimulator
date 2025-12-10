@@ -5,7 +5,7 @@ from OpenGL.GLUT import *
 from scipy.spatial.transform import Rotation as R
 
 from viewer.menu import GUI
-from viewer.robot_trace import RobotTrace
+from viewer.trace import Trace
 from viewer.obj_manager import load_obj_with_tex, create_vertex_data, create_vbo, draw_vbo_textured
 
 import time
@@ -255,10 +255,6 @@ class Viewer:
 		glMatrixMode(GL_MODELVIEW)
 		glPopMatrix()
 
-
-	# ================================================================
-	#      HEADING CYLINDER  —  rolling numbers on a curved drum
-	# ================================================================
 	def draw_heading_cylinder(self):
 		"""
 		Draw a rolling heading scale curved like a cylinder.
@@ -354,11 +350,6 @@ class Viewer:
 		glMatrixMode(GL_MODELVIEW)
 		glPopMatrix()
 
-
-
-	# ================================================================
-	#      HEADING CYLINDER  —  rolling numbers on a curved drum
-	# ================================================================
 	def draw_heading_ladder(self):
 		"""
 		Draw a rolling heading scale curved like a cylinder.
@@ -467,12 +458,6 @@ class Viewer:
 		glMatrixMode(GL_MODELVIEW)
 		glPopMatrix()
 
-
-
-
-	# ================================================================
-	#      HEADING CYLINDER  —  rolling numbers on a curved drum
-	# ================================================================
 	def draw_pitch_ladder(self):
 		"""
 		Draw a rolling heading scale curved like a cylinder.
@@ -579,7 +564,6 @@ class Viewer:
 		glPopMatrix()
 		glMatrixMode(GL_MODELVIEW)
 		glPopMatrix()
-
 
 	def draw_text(self, x, y, text, font=GLUT_BITMAP_9_BY_15, color=(1, 1, 1)):
 		glColor3f(*color)
@@ -814,6 +798,18 @@ class Viewer:
 					if self.gui.draw_reference_button.active:
 						self.draw_axes(draw_on_top=True)
 					glPopMatrix()
+			if self.robot.mission.type == "trajectory":
+				tf = self.robot.mission.traj_pos(self.times[self.frame_index])
+				glPushMatrix()
+				glTranslatef(*tf[:3])
+				glRotatef(tf[5] * RAD2DEG, 0, 0, 1)
+				glRotatef(tf[4] * RAD2DEG, 0, 1, 0)
+				glRotatef(tf[3] * RAD2DEG, 1, 0, 0)
+				self.draw_target_marker()
+				if self.gui.draw_reference_button.active:
+					self.draw_axes(draw_on_top=True)
+				glPopMatrix()
+				self.wp_trace.draw(color=(1.0, 0.9, 0.0))
 
 		if self.gui.draw_trace_button.active:
 			self.robot_trace.draw()
@@ -1043,7 +1039,10 @@ class Viewer:
 		self.robot_vbo = create_vbo(vertex_data)
 		self.robot_texture_id = robot_mesh[4]
 		self.robot_vertex_count = len(vertex_data) // 8
-		self.robot_trace = RobotTrace()
+		self.robot_trace = Trace()
+		self.wp_trace = Trace()
+		self.wp_trace.update(self.robot.logger.etas_desired[:, :3])
+
 
 		# GUI
 		self.gui = GUI(window_width=self.window_width, window_height=self.window_height)

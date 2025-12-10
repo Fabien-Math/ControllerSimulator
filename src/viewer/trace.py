@@ -1,7 +1,7 @@
 import numpy as np
 from OpenGL.GL import *
 
-class RobotTrace:
+class Trace:
 	def __init__(self, max_points=100000):
 		self.max_points = max_points
 		self.positions = np.zeros((max_points, 3), dtype=np.float32)
@@ -21,7 +21,7 @@ class RobotTrace:
 		glBufferData(GL_ARRAY_BUFFER, self.positions[:self.count].nbytes, self.positions[:self.count], GL_DYNAMIC_DRAW)
 		glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-	def draw(self):
+	def draw(self, color=(0.1, 0.6, 0.9)):
 		if self.count < 2:
 			return  # Need at least 2 points to draw a line
 		glDisable(GL_LIGHTING)
@@ -30,7 +30,7 @@ class RobotTrace:
 		glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
 		glVertexPointer(3, GL_FLOAT, 0, None)
 
-		glColor3f(0.1, 0.6, 0.9)  # Red trace
+		glColor3f(*color)
 		glLineWidth(1.5)
 		glDrawArrays(GL_LINE_STRIP, 0, self.count)
 
